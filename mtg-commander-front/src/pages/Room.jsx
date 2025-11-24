@@ -2,14 +2,22 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useGame } from "../context/GameContext.jsx";
 import PlayerBoard from "../components/Playerboard.jsx";
 import Chat from "../components/chat.jsx";
+import CardSearch from "../components/CardSearch.jsx";
+import { useState } from "react";
+
 
 function Room() {
+
+
+const [selectedCard, setSelectedCard] = useState(null);
+
+
   const { code } = useParams();
   const navigate = useNavigate();
   const { players, playerName, roomCode } = useGame();
 
   if (!playerName || !roomCode) {
-    // se recarregar a página e perder o contexto, volta pro início
+    // se recarregar a página e perder o contexto, volta pro inícioV
     navigate('/');
   }
 
@@ -27,6 +35,8 @@ function Room() {
           ))}
         </div>
         <div className="sidebar">
+          <CardSearch onCardSelected={(card) => setSelectedCard(card)} />
+
           <Chat />
         </div>
       </div>
