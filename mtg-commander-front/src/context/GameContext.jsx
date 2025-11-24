@@ -81,6 +81,17 @@ export function GameProvider({ children }) {
     });
   }
 
+    // Adicionar carta na mão via backend
+  function addCardToHand(card) {
+    if (!roomCode || !playerName || !card) return;
+    socket.emit("add-card-to-hand", {
+      roomCode,
+      playerName,
+      card,
+    });
+  }
+
+
   const value = {
     playerName,
     setPlayerName,
@@ -92,6 +103,7 @@ export function GameProvider({ children }) {
     joinRoom,
     updatePlayerLife,
     sendMessage,
+    addCardToHand,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

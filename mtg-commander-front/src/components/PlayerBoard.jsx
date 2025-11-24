@@ -1,18 +1,16 @@
-import { useState } from "react";
 import { useGame } from "../context/GameContext.jsx";
 
 function PlayerBoard({ player }) {
   const { updatePlayerLife } = useGame();
-  const [hand, setHand] = useState([]);
 
-  function addCard(card) {
-    setHand((prev) => [...prev, card]);
-  }
+  // A mão vem DIRETO do backend (socket.io)
+  const hand = player.hand || [];
 
   return (
     <div className="player-board">
       <div className="player-header">
         <h3>{player.name}</h3>
+
         <div className="life-controls">
           <button onClick={() => updatePlayerLife(player.name, -1)}>-</button>
           <span className="life-value">{player.life}</span>
@@ -23,14 +21,27 @@ function PlayerBoard({ player }) {
       {/* MÃO */}
       <div className="zone">
         <strong>Mão:</strong>
-        <div className="hand-cards" style={{ display: "flex", gap: "8px", marginTop: "8px", overflowX: "auto" }}>
-          {hand.map((c, i) => (
+
+        <div
+          className="hand-cards"
+          style={{
+            display: "flex",
+            gap: "8px",
+            marginTop: "8px",
+            overflowX: "auto",
+            paddingBottom: "8px"
+          }}
+        >
+          {hand.map((c) => (
             <img
-              key={i}
+              key={c.instanceId}
               src={c.image_uris?.small}
               alt={c.name}
               title={c.name}
-              style={{ width: "80px", borderRadius: "6px" }}
+              style={{
+                width: "80px",
+                borderRadius: "6px",
+              }}
             />
           ))}
         </div>
@@ -41,13 +52,6 @@ function PlayerBoard({ player }) {
         <div className="zone">Cemitério</div>
         <div className="zone">Exílio</div>
       </div>
-
-      {/* botão temporário para testes */}
-      {player.name === "Victor" && (
-        <p style={{ fontSize: "0.7rem", color: "#888" }}>
-          As cartas aparecem só pra você (ainda não sincronizamos entre jogadores).
-        </p>
-      )}
     </div>
   );
 }

@@ -28,6 +28,7 @@ mongoose
 // Schemas e Models
 // ======================
 
+
 const CommanderDamageSchema = new mongoose.Schema(
   {
     source: String, // nome do comandante adversário
@@ -42,9 +43,11 @@ const PlayerSchema = new mongoose.Schema(
     life: Number,
     poison: Number,
     commanderDamage: [CommanderDamageSchema],
+    hand: [mongoose.Schema.Types.Mixed], // cartas na mão
   },
   { _id: false }
 );
+
 
 const MessageSchema = new mongoose.Schema(
   {
@@ -89,6 +92,7 @@ function roomToDoc(code) {
     commanderDamage: Object.entries(p.commanderDamage || {}).map(
       ([source, damage]) => ({ source, damage })
     ),
+    hand: p.hand || [],
   }));
 
   const messagesArray = room.messages.map((m) => ({
@@ -99,6 +103,7 @@ function roomToDoc(code) {
 
   return { code, players: playersArray, messages: messagesArray };
 }
+
 
 function getRoomState(roomCode) {
   const room = rooms[roomCode];
@@ -146,18 +151,20 @@ io.on('connection', (socket) => {
         // Carrega do banco
         const playersMap = {};
         (roomDoc.players || []).forEach((p) => {
-          const fakeId = `${p.name}-${Date.now()}-${Math.random()}`;
-          playersMap[fakeId] = {
-            id: fakeId,
-            name: p.name,
-            life: p.life,
-            poison: p.poison,
-            commanderDamage: (p.commanderDamage || []).reduce((acc, cd) => {
-              acc[cd.source] = cd.damage;
-              return acc;
-            }, {}),
-          };
-        });
+  const fakeId = `${p.name}-${Date.now()}-${Math.random()}`;
+  playersMap[fakeId] = {
+    id: fakeId,
+    name: p.name,
+    life: p.life,
+    poison: p.poison,
+    commanderDamage: (p.commanderDamage || []).reduce((acc, cd) => {
+      acc[cd.source] = cd.damage;
+      return acc;
+    }, {}),
+    hand: p.hand || [],
+  };
+});
+
 
         rooms[code] = {
           code,
@@ -188,7 +195,7 @@ io.on('connection', (socket) => {
     );
 
     let player;
-    if (existingPlayerEntry) {
+        if (existingPlayerEntry) {
       const [, p] = existingPlayerEntry;
       player = { ...p, id: socket.id };
     } else {
@@ -198,8 +205,10 @@ io.on('connection', (socket) => {
         life: 40,
         poison: 0,
         commanderDamage: {},
+        hand: [],
       };
     }
+
 
     rooms[code].players[socket.id] = player;
 
@@ -232,6 +241,44 @@ io.on('connection', (socket) => {
     io.to(code).emit('room-state', state);
     await syncRoomToDb(code);
   });
+
+    // Adicionar carta na mão de um jogador
+    
+  socket.on('add-card-to-hand', async ({ roomCode, playerName, card }) => {
+console.log(
+      "BACKEND RECEBEU add-card-to-hand:",
+      roomCode,
+      playerName,
+      !!card
+    );
+    const code = roomCode?.toUpperCase();
+    const room = rooms[code];
+    if (!room || !card) return;
+
+    const playerEntry = Object.entries(room.players).find(
+      ([, p]) => p.name === playerName
+    );
+    if (!playerEntry) return;
+
+    const [socketId, player] = playerEntry;
+
+    const newCard = {
+      ...card,
+      instanceId: `${Date.now()}-${Math.random()}`, // id único por cópia
+    };
+
+    const newHand = [...(player.hand || []), newCard];
+
+    room.players[socketId] = {
+      ...player,
+      hand: newHand,
+    };
+
+    const state = getRoomState(code);
+    io.to(code).emit('room-state', state);
+    await syncRoomToDb(code);
+  });
+
 
   // Mensagens de chat
   socket.on('chat-message', async ({ roomCode, from, text }) => {
