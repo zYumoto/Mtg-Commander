@@ -6,10 +6,14 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const axios = require('axios');
+const authRoutes = require("./routes/auth");
+
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/auth", authRoutes);
+
 
 const server = http.createServer(app);
 
@@ -331,21 +335,23 @@ app.get('/health', (req, res) => {
 
 // Rota para buscar carta no Scryfall
 app.get('/api/cards/search', async (req, res) => {
-  const { name } = req.query;
+  const { name, set } = req.query;
   if (!name) {
     return res.status(400).json({ error: 'Parâmetro "name" é obrigatório' });
   }
 
   try {
+    const params = { fuzzy: name };
+    if (set) {
+      params.set = set; // ex: "pip", "blb", "fin"
+    }
+
     const response = await axios.get('https://api.scryfall.com/cards/named', {
-      params: {
-        fuzzy: name,
-      },
+      params,
     });
 
     const card = response.data;
 
-    // Devolvemos só o essencial pro front
     res.json({
       name: card.name,
       mana_cost: card.mana_cost,
@@ -353,6 +359,7 @@ app.get('/api/cards/search', async (req, res) => {
       oracle_text: card.oracle_text,
       image_uris: card.image_uris || card.card_faces?.[0]?.image_uris || null,
       set_name: card.set_name,
+      set: card.set,
     });
   } catch (err) {
     console.error('Erro ao buscar carta no Scryfall:', err.response?.data || err.message);
