@@ -7,6 +7,9 @@ import Lobby from "./pages/Lobby.jsx";
 import Room from "./pages/Room.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
+import Decks from "./pages/Decks.jsx";
+import EditDeck from "./pages/EditDeck.jsx";
+import DeckView from "./pages/DeckView.jsx";
 
 import Header from "./components/Header.jsx";
 
@@ -21,8 +24,14 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/lobby" element={<Lobby />} />
               <Route path="/room/:code" element={<Room />} />
+
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+
+              <Route path="/decks" element={<Decks />} />
+              <Route path="/decks/new" element={<EditDeck />} />
+              <Route path="/decks/:id/edit" element={<EditDeck />} />
+              <Route path="/decks/:id/view" element={<DeckView />} />
             </Routes>
           </main>
         </div>

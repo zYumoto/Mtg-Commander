@@ -20,7 +20,10 @@ function Header() {
         </Link>
       </div>
 
-      <div className="header-right" style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+      <div
+        className="header-right"
+        style={{ display: "flex", gap: "1rem", alignItems: "center" }}
+      >
         {roomCode && (
           <span>
             Sala: <strong>{roomCode}</strong>
@@ -37,9 +40,13 @@ function Header() {
           <>
             {isAuthenticated ? (
               <>
+                {/* 👇 AQUI O LINK QUE FALTAVA */}
+                <Link to="/decks">Meus Decks</Link>
+
                 <span>
                   Logado como: <strong>{user?.nickname}</strong>
                 </span>
+
                 <button onClick={handleLogout}>Sair</button>
               </>
             ) : (

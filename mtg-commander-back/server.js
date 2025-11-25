@@ -7,12 +7,16 @@ const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const axios = require('axios');
 const authRoutes = require("./routes/auth");
+const deckRoutes = require("./routes/decks");
+
 
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/auth", authRoutes);
+app.use("/decks", deckRoutes);
+
 
 
 const server = http.createServer(app);
@@ -370,7 +374,17 @@ app.get('/api/cards/search', async (req, res) => {
 // ======================
 // Iniciar servidor
 // ======================
-
+// Handler global de erros (pra garantir que volte JSON)
+app.use((err, req, res, next) => {
+  console.error("ERRO NO SERVIDOR:", err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: "Erro interno do servidor" });
+});
+app.use((err, req, res, next) => {
+  console.error("ERRO GLOBAL:", err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: "Erro interno do servidor" });
+});
 server.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
