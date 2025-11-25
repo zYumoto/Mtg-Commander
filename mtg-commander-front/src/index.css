@@ -216,3 +216,527 @@ button:hover {
     grid-template-columns: 1fr;
   }
 }
+/* ===== PLAYER HUD ===== */
+
+.player-hud {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: #050513;
+  border-radius: 1rem;
+  padding: 0.75rem 1rem 1rem;
+  border: 1px solid #232342;
+}
+
+/* Topbar */
+.player-hud-topbar {
+  display: grid;
+  grid-template-columns: 200px 1fr 200px;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.hud-pill {
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #2e2e4a;
+  background: #0c0c20;
+  color: #f5f5ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.hud-life span {
+  opacity: 0.7;
+}
+
+.hud-life strong {
+  font-size: 1.1rem;
+}
+
+.hud-name {
+  font-weight: 600;
+}
+
+.hud-pass {
+  cursor: pointer;
+  justify-content: center;
+  font-weight: 600;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  border-color: #3b82f6;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.08s ease;
+}
+
+.hud-pass:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.45);
+  filter: brightness(1.05);
+}
+
+/* Zona principal */
+.player-hud-main {
+  display: grid;
+  grid-template-columns: 170px 1fr 170px;
+  gap: 0.75rem;
+  min-height: 260px;
+}
+
+.zone-left,
+.zone-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.zone-center {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.zone-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.zone-rect {
+  border-radius: 0.75rem;
+  border: 1px solid #262642;
+  background: #09091a;
+  padding: 0.4rem 0.55rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 70px;
+}
+
+.zone-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+
+.zone-slot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.zone-slot-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* "slots" onde vão ficar cartas */
+.zone-card-placeholder {
+  border-radius: 0.5rem;
+  border: 1px dashed #3b3b5f;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zone-card-placeholder.small {
+  font-size: 0.65rem;
+}
+
+/* Mão */
+.player-hud-hand {
+  margin-top: 0.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid #232342;
+  background: #070716;
+  padding: 0.5rem 0.75rem;
+  min-height: 86px;
+  display: flex;
+  align-items: center;
+}
+
+.hand-empty {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.hand-cards {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-end;
+}
+
+.hand-card {
+  width: 82px;
+  height: 118px;
+  border-radius: 0.6rem;
+  border: 1px solid #3b3b5f;
+  background: radial-gradient(circle at top, #1b1b32, #050512);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0.3rem;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.hand-card:hover {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.7);
+}
+
+.hand-card-name {
+  font-size: 0.68rem;
+  text-align: center;
+  color: #f9fafb;
+}
+
+/* ==== OVERVIEW DA MESA 4 PLAYERS – VERSÃO ALINHADA ==== */
+
+.table-overview {
+  position: relative;
+  width: 100%;
+  min-height: 340px;
+  background: #050515;
+  border-radius: 1rem;
+  border: 1px solid #242446;
+  padding: 0.9rem 1.1rem;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  row-gap: 0.75rem;
+}
+
+/* linhas da mesa */
+.table-player-top,
+.table-player-bottom {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.table-middle-row {
+  display: grid;
+  grid-template-columns: 220px 1fr 220px; /* left – center – right */
+  column-gap: 0.75rem;
+  align-items: stretch;
+}
+
+/* stack no centro */
+.table-stack {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.table-stack-box {
+  width: 130px;
+  height: 170px;
+  border-radius: 0.75rem;
+  border: 1px solid #3b3b5f;
+  background: #0a0a1b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+/* ==== SeatCard (placas dos jogadores) ==== */
+
+.seat-card {
+  position: relative;
+  cursor: pointer;
+}
+
+/* top/bottom: barra larga */
+.seat-horizontal {
+  width: 100%;
+  max-width: 560px;
+  min-height: 72px;
+}
+
+/* left/right: retângulo vertical grande */
+.seat-vertical {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+}
+
+/* retângulo principal (área do player) */
+.seat-rect {
+  border-radius: 0.9rem;
+  border: 1px solid #2f2f4f;
+  background: #080818;
+  padding: 0.75rem;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* texto dentro do retângulo */
+.seat-label {
+  font-size: 0.86rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+}
+
+.seat-empty {
+  font-size: 0.8rem;
+  opacity: 0.5;
+}
+
+/* posição das cápsulas de vida */
+
+.seat-life-wrapper {
+  position: absolute;
+}
+
+.life-top {
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.life-bottom {
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.life-left {
+  left: -18px;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+}
+
+.life-right {
+  right: -18px;
+  top: 50%;
+  transform: translateY(-50%) rotate(90deg);
+}
+
+/* estilo da cápsula de vida */
+.seat-life-pill {
+  border-radius: 999px;
+  border: 1px solid #3b3b5f;
+  background: #0e0e24;
+  padding: 0.15rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.seat-life-pill span {
+  opacity: 0.7;
+}
+
+.seat-life-pill strong {
+  font-size: 0.9rem;
+}
+
+/* destaque do player focado (HUD embaixo) */
+.seat-focused .seat-rect {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.35);
+}
+
+/* responsivo – estreita um pouco em telas menores */
+@media (max-width: 1100px) {
+  .table-middle-row {
+    grid-template-columns: 180px 1fr 180px;
+  }
+}
+
+@media (max-width: 900px) {
+  .table-overview {
+    min-height: 260px;
+  }
+
+  .table-middle-row {
+    grid-template-columns: 1fr;
+    row-gap: 0.5rem;
+  }
+
+  .seat-vertical {
+    min-height: 120px;
+  }
+
+  .life-left,
+  .life-right {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}
+/* ==== PLAYER HUD ==== */
+
+.player-hud {
+  background: #080812;
+  border: 1px solid #2a2a40;
+  border-radius: 1rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* === TOP BAR === */
+
+.hud-topbar {
+  display: grid;
+  grid-template-columns: 160px 1fr 180px;
+  gap: 1rem;
+  align-items: center;
+}
+
+.hud-life-pill {
+  background: #101020;
+  border: 1px solid #3b3b5e;
+  padding: 0.35rem 0.8rem;
+  border-radius: 100px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+.hud-life-value {
+  min-width: 2.2rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.hud-life-btn {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  border: 1px solid #3b3b5e;
+  background: #141428;
+  color: #f5f5ff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.hud-life-btn:hover {
+  background: #1f1f3a;
+}
+
+
+.hud-nick {
+  background: #101020;
+  border: 1px solid #3b3b5e;
+  padding: 0.6rem;
+  border-radius: 10px;
+  text-align: center;
+  color: white;
+  letter-spacing: 0.05em;
+}
+
+.hud-pass {
+  background: #1c5eff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  color: white;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* === MAIN GRID === */
+
+.hud-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr 160px;
+  gap: 1rem;
+}
+
+/* LEFT / RIGHT PANELS */
+.hud-left,
+.hud-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* CENTER AREA */
+.hud-center {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* BOXES */
+.hud-box {
+  border: 1px solid #3b3b5e;
+  background: #0a0a1a;
+  border-radius: 10px;
+  color: #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.hud-box.small {
+  height: 180px;
+}
+
+.hud-box.medium {
+  height: 140px;
+}
+
+/* === HAND === */
+
+.hud-hand {
+  margin-top: 1rem;
+  background: #0b0b18;
+  border-radius: 10px;
+  border: 1px solid #30304a;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+}
+
+.hud-hand-card {
+  width: 110px;
+  height: 155px;
+  transition: transform 0.2s;
+}
+
+.hud-hand-card img {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+.hud-card-placeholder {
+  background: #151525;
+  border: 1px solid #3b3b5e;
+  border-radius: 8px;
+  width: 100%;
+  height: 100%;
+  font-size: 0.7rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

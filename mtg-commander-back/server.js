@@ -230,25 +230,26 @@ io.on('connection', (socket) => {
 
   // Atualizar vida
   socket.on('update-life', async ({ roomCode, playerName, delta }) => {
-    const code = roomCode?.toUpperCase();
-    const room = rooms[code];
-    if (!room) return;
+  const code = roomCode?.toUpperCase();
+  const room = rooms[code];
+  if (!room) return;
 
-    const playerEntry = Object.entries(room.players).find(
-      ([, p]) => p.name === playerName
-    );
-    if (!playerEntry) return;
+  const playerEntry = Object.entries(room.players).find(
+    ([, p]) => p.name === playerName
+  );
+  if (!playerEntry) return;
 
-    const [socketId, player] = playerEntry;
-    room.players[socketId] = {
-      ...player,
-      life: player.life + delta,
-    };
+  const [socketId, player] = playerEntry;
 
-    const state = getRoomState(code);
-    io.to(code).emit('room-state', state);
-    await syncRoomToDb(code);
-  });
+  room.players[socketId] = {
+    ...player,
+    life: (player.life || 40) + delta,
+  };
+
+  io.to(code).emit('room-state', getRoomState(code));
+  await syncRoomToDb(code);
+});
+
 
     // Adicionar carta na mão de um jogador
     
@@ -370,6 +371,8 @@ app.get('/api/cards/search', async (req, res) => {
     res.status(500).json({ error: 'Erro ao buscar carta no Scryfall' });
   }
 });
+
+
 
 // ======================
 // Iniciar servidor
