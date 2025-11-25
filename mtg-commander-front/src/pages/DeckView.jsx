@@ -19,41 +19,29 @@ function DeckView() {
   }, [loading, isAuthenticated, navigate]);
 
   useEffect(() => {
-  async function fetchDeck() {
-    if (!token || !id) return;
-    setLoadingDeck(true);
-    try {
-      const res = await fetch(`${API_URL}/decks/${id}/resolved`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    async function fetchDeck() {
+      if (!token || !id) return;
+      setLoadingDeck(true);
+      try {
+        // 👇 agora usamos a rota simples /decks/:id
+        const res = await fetch(`${API_URL}/decks/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      const contentType = res.headers.get("content-type") || "";
-
-      if (!contentType.includes("application/json")) {
-        const text = await res.text();
-        throw new Error(
-          "Resposta do servidor não é JSON. Status " +
-            res.status +
-            ": " +
-            text.slice(0, 80)
-        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Erro ao carregar deck");
+        setDeck(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoadingDeck(false);
       }
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erro ao carregar deck");
-      setDeck(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoadingDeck(false);
     }
-  }
 
-  fetchDeck();
-}, [token, id]);
-
+    fetchDeck();
+  }, [token, id]);
 
   if (loading || loadingDeck) {
     return (
@@ -67,7 +55,10 @@ function DeckView() {
     return (
       <section className="page-center">
         <p style={{ color: "#ff6b6b" }}>{error}</p>
-        <Link to="/decks" style={{ marginTop: "1rem", display: "inline-block" }}>
+        <Link
+          to="/decks"
+          style={{ marginTop: "1rem", display: "inline-block" }}
+        >
           ← Voltar para Meus Decks
         </Link>
       </section>
@@ -75,6 +66,9 @@ function DeckView() {
   }
 
   if (!deck) return null;
+
+  // só por conferência: deck.cards deve ser [{ name, quantity }]
+  const cards = deck.cards || [];
 
   return (
     <section className="page-center" style={{ maxWidth: "1100px" }}>
@@ -86,7 +80,7 @@ function DeckView() {
       <div style={{ margin: "0.5rem 0 1rem" }}>
         <Link to="/decks">← Voltar para Meus Decks</Link>{" "}
         <span style={{ marginLeft: "1rem", fontSize: "0.9rem", opacity: 0.8 }}>
-          {deck.cards?.length || 0} tipos de carta
+          {cards.length} tipos de carta
         </span>
       </div>
 
@@ -97,61 +91,46 @@ function DeckView() {
           gap: "1rem",
         }}
       >
-        {deck.cards.map((c, index) => (
-          <div
-            key={`${c.name}-${index}`}
-            style={{
-              background: "#141424",
-              borderRadius: "0.75rem",
-              padding: "0.5rem",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "0.85rem", marginBottom: "0.25rem" }}>
-              <strong>{c.quantity}x</strong> {c.name}
-            </div>
+        {cards.map((c, index) => {
+          // limpa o nome pra casos tipo "Card Name (EOC)" etc
+          const cleanName = (c.name || "")
+            .replace(/\s+\(.*\)$/, "") // remove sufixo entre parênteses
+            .trim();
 
-            {c.image_uris?.normal ? (
+          const imgSrc = `https://api.scryfall.com/cards/named?format=image&fuzzy=${encodeURIComponent(
+            cleanName
+          )}`;
+
+          return (
+            <div
+              key={`${c.name}-${index}`}
+              style={{
+                background: "#141424",
+                borderRadius: "0.75rem",
+                padding: "0.5rem",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: "0.85rem", marginBottom: "0.25rem" }}>
+                <strong>{c.quantity || 1}x</strong> {c.name}
+              </div>
+
               <img
-                src={c.image_uris.normal}
+                src={imgSrc}
                 alt={c.name}
                 style={{
                   width: "100%",
                   borderRadius: "0.5rem",
                   marginBottom: "0.25rem",
                 }}
+                onError={(e) => {
+                  // se mesmo assim não achar, some a imagem
+                  e.currentTarget.style.display = "none";
+                }}
               />
-            ) : (
-              <div
-                style={{
-                  width: "100%",
-                  aspectRatio: "63 / 88",
-                  borderRadius: "0.5rem",
-                  background: "#222235",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "0.8rem",
-                  color: "#aaa",
-                  marginBottom: "0.25rem",
-                }}
-              >
-                Sem imagem
-              </div>
-            )}
-
-            {c.set_name && (
-              <div
-                style={{
-                  fontSize: "0.7rem",
-                  color: "#9b9bb8",
-                }}
-              >
-                {c.set_name} ({c.set?.toUpperCase()})
-              </div>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
