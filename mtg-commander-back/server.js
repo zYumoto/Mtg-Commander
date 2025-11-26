@@ -6,18 +6,15 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const axios = require('axios');
+
 const authRoutes = require("./routes/auth");
 const deckRoutes = require("./routes/decks");
-
-
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/auth", authRoutes);
 app.use("/decks", deckRoutes);
-
-
 
 const server = http.createServer(app);
 
@@ -35,7 +32,6 @@ mongoose
 // ======================
 // Schemas e Models
 // ======================
-
 
 const CommanderDamageSchema = new mongoose.Schema(
   {
@@ -56,7 +52,6 @@ const PlayerSchema = new mongoose.Schema(
   { _id: false }
 );
 
-
 const MessageSchema = new mongoose.Schema(
   {
     from: String,
@@ -70,6 +65,8 @@ const RoomSchema = new mongoose.Schema({
   code: { type: String, unique: true, index: true },
   players: [PlayerSchema],
   messages: [MessageSchema],
+  owner: String,      // dono da sala
+  startTime: Date,    // quando a partida começou
 });
 
 const RoomModel = mongoose.model('Room', RoomSchema);
@@ -103,15 +100,20 @@ function roomToDoc(code) {
     hand: p.hand || [],
   }));
 
-  const messagesArray = room.messages.map((m) => ({
+  const messagesArray = (room.messages || []).map((m) => ({
     from: m.from,
     text: m.text,
     createdAt: new Date(m.createdAt),
   }));
 
-  return { code, players: playersArray, messages: messagesArray };
+  return {
+    code,
+    players: playersArray,
+    messages: messagesArray,
+    owner: room.owner || null,
+    startTime: room.startTime ? new Date(room.startTime) : null,
+  };
 }
-
 
 function getRoomState(roomCode) {
   const room = rooms[roomCode];
@@ -121,7 +123,9 @@ function getRoomState(roomCode) {
   return {
     roomCode: room.code,
     players: playersArray,
-    messages: room.messages,
+    messages: room.messages || [],
+    owner: room.owner || null,
+    startTime: room.startTime || null,
   };
 }
 
@@ -136,7 +140,6 @@ async function syncRoomToDb(code) {
       { $set: docData },
       { upsert: true, new: true }
     );
-    // console.log(`Sala ${code} sincronizada com o banco.`);
   } catch (err) {
     console.error('Erro ao salvar sala no MongoDB:', err);
   }
@@ -159,20 +162,19 @@ io.on('connection', (socket) => {
         // Carrega do banco
         const playersMap = {};
         (roomDoc.players || []).forEach((p) => {
-  const fakeId = `${p.name}-${Date.now()}-${Math.random()}`;
-  playersMap[fakeId] = {
-    id: fakeId,
-    name: p.name,
-    life: p.life,
-    poison: p.poison,
-    commanderDamage: (p.commanderDamage || []).reduce((acc, cd) => {
-      acc[cd.source] = cd.damage;
-      return acc;
-    }, {}),
-    hand: p.hand || [],
-  };
-});
-
+          const fakeId = `${p.name}-${Date.now()}-${Math.random()}`;
+          playersMap[fakeId] = {
+            id: fakeId,
+            name: p.name,
+            life: p.life,
+            poison: p.poison,
+            commanderDamage: (p.commanderDamage || []).reduce((acc, cd) => {
+              acc[cd.source] = cd.damage;
+              return acc;
+            }, {}),
+            hand: p.hand || [],
+          };
+        });
 
         rooms[code] = {
           code,
@@ -184,6 +186,10 @@ io.on('connection', (socket) => {
               text: m.text,
               createdAt: m.createdAt || new Date().toISOString(),
             })) || [],
+          owner: roomDoc.owner || null,
+          startTime: roomDoc.startTime
+            ? new Date(roomDoc.startTime).getTime()
+            : null,
         };
       } else {
         // Cria uma nova
@@ -191,8 +197,15 @@ io.on('connection', (socket) => {
           code,
           players: {},
           messages: [],
+          owner: null,
+          startTime: null,
         };
       }
+    }
+
+    // Se ninguém é dono ainda, define este jogador como dono
+    if (!rooms[code].owner) {
+      rooms[code].owner = playerName;
     }
 
     socket.join(code);
@@ -203,8 +216,12 @@ io.on('connection', (socket) => {
     );
 
     let player;
-        if (existingPlayerEntry) {
-      const [, p] = existingPlayerEntry;
+    if (existingPlayerEntry) {
+      const [oldKey, p] = existingPlayerEntry;
+
+      // Remove o antigo (fakeId) e reaponta para o socket.id atual
+      delete rooms[code].players[oldKey];
+
       player = { ...p, id: socket.id };
     } else {
       player = {
@@ -217,10 +234,10 @@ io.on('connection', (socket) => {
       };
     }
 
-
     rooms[code].players[socket.id] = player;
 
     console.log(`Jogador ${playerName} entrou na sala ${code}`);
+    console.log(`Dono da sala ${code}:`, rooms[code].owner);
 
     const state = getRoomState(code);
     io.to(code).emit('room-state', state);
@@ -228,38 +245,57 @@ io.on('connection', (socket) => {
     await syncRoomToDb(code);
   });
 
+  // ======================
   // Atualizar vida
+  // ======================
   socket.on('update-life', async ({ roomCode, playerName, delta }) => {
-  const code = roomCode?.toUpperCase();
-  const room = rooms[code];
-  if (!room) return;
+    console.log("🔁 update-life recebido:", { roomCode, playerName, delta });
 
-  const playerEntry = Object.entries(room.players).find(
-    ([, p]) => p.name === playerName
-  );
-  if (!playerEntry) return;
+    const code = roomCode?.toUpperCase();
+    const room = rooms[code];
 
-  const [socketId, player] = playerEntry;
+    if (!room) {
+      console.log("❌ Sala não encontrada:", code);
+      return;
+    }
 
-  room.players[socketId] = {
-    ...player,
-    life: (player.life || 40) + delta,
-  };
-
-  io.to(code).emit('room-state', getRoomState(code));
-  await syncRoomToDb(code);
-});
-
-
-    // Adicionar carta na mão de um jogador
-    
-  socket.on('add-card-to-hand', async ({ roomCode, playerName, card }) => {
-console.log(
-      "BACKEND RECEBEU add-card-to-hand:",
-      roomCode,
-      playerName,
-      !!card
+    const playerEntry = Object.entries(room.players).find(
+      ([, p]) => p.name === playerName
     );
+
+    if (!playerEntry) {
+      console.log("❌ Jogador não encontrado na sala:", playerName);
+      return;
+    }
+
+    const [socketId, player] = playerEntry;
+
+    const numericDelta = Number(delta || 0);
+    if (Number.isNaN(numericDelta)) {
+      console.log("❌ delta inválido:", delta);
+      return;
+    }
+
+    const currentLife = player.life ?? 40;
+    const newLife = currentLife + numericDelta;
+
+    room.players[socketId] = {
+      ...player,
+      life: newLife,
+    };
+
+    console.log(`✅ Vida de ${playerName} na sala ${code}: ${currentLife} -> ${newLife}`);
+
+    io.to(code).emit('room-state', getRoomState(code));
+    await syncRoomToDb(code);
+  });
+
+  // ======================
+  // Adicionar carta na mão
+  // ======================
+  socket.on('add-card-to-hand', async ({ roomCode, playerName, card }) => {
+    console.log("BACKEND RECEBEU add-card-to-hand:", roomCode, playerName, !!card);
+
     const code = roomCode?.toUpperCase();
     const room = rooms[code];
     if (!room || !card) return;
@@ -283,13 +319,13 @@ console.log(
       hand: newHand,
     };
 
-    const state = getRoomState(code);
-    io.to(code).emit('room-state', state);
+    io.to(code).emit('room-state', getRoomState(code));
     await syncRoomToDb(code);
   });
 
-
+  // ======================
   // Mensagens de chat
+  // ======================
   socket.on('chat-message', async ({ roomCode, from, text }) => {
     const code = roomCode?.toUpperCase();
     const room = rooms[code];
@@ -308,7 +344,34 @@ console.log(
     await syncRoomToDb(code);
   });
 
+  // ======================
+  // Iniciar partida (cronômetro sincronizado)
+  // ======================
+  socket.on('start-game', async ({ roomCode, playerName }) => {
+    const code = roomCode?.toUpperCase();
+    const room = rooms[code];
+    if (!room) return;
+
+    // Apenas o dono pode iniciar
+    if (room.owner !== playerName) {
+      console.log("Tentativa de iniciar por não-dono:", playerName);
+      return;
+    }
+
+    room.startTime = Date.now();
+
+    io.to(code).emit('game-started', {
+      startTime: room.startTime,
+    });
+
+    console.log(`⏱ Partida iniciada na sala ${code} por ${playerName}`);
+
+    await syncRoomToDb(code);
+  });
+
+  // ======================
   // Desconexão
+  // ======================
   socket.on('disconnect', async () => {
     console.log('Cliente desconectado:', socket.id);
 
@@ -372,22 +435,15 @@ app.get('/api/cards/search', async (req, res) => {
   }
 });
 
-
-
 // ======================
-// Iniciar servidor
+// Handler global de erros
 // ======================
-// Handler global de erros (pra garantir que volte JSON)
 app.use((err, req, res, next) => {
   console.error("ERRO NO SERVIDOR:", err);
   if (res.headersSent) return next(err);
   res.status(500).json({ error: "Erro interno do servidor" });
 });
-app.use((err, req, res, next) => {
-  console.error("ERRO GLOBAL:", err);
-  if (res.headersSent) return next(err);
-  res.status(500).json({ error: "Erro interno do servidor" });
-});
+
 server.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });

@@ -1,14 +1,34 @@
+/* ========== RESET / BASE ========== */
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
 }
 
 body {
   background: #0b0b10;
   color: #f5f5f5;
 }
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #3c82ff;
+  color: #f5f5f5;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+/* ========== LAYOUT APP ========== */
 
 .app-container {
   min-height: 100vh;
@@ -40,6 +60,8 @@ body {
   flex: 1;
   padding: 1.5rem;
 }
+
+/* ========== PÁGINAS / FORMULÁRIOS ========== */
 
 .page-center {
   max-width: 480px;
@@ -77,7 +99,8 @@ body {
   font-size: 0.9rem;
 }
 
-.form-card input {
+.form-card input,
+.form-card select {
   width: 100%;
   margin-top: 0.25rem;
   padding: 0.5rem 0.75rem;
@@ -87,29 +110,16 @@ body {
   color: #f5f5f5;
 }
 
-button {
-  cursor: pointer;
-  border: none;
-  border-radius: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: #3c82ff;
-  color: #f5f5f5;
-  font-weight: 600;
-  margin-top: 0.5rem;
-}
-
-button:hover {
-  opacity: 0.9;
-}
-
 .info {
   margin-top: 0.75rem;
   font-size: 0.9rem;
   color: #c5c5d5;
 }
 
+/* ========== ROOM LAYOUT ========== */
+
 .room {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -119,9 +129,11 @@ button:hover {
 
 .room-content {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(260px, 320px) 1fr;
   gap: 1rem;
 }
+
+/* (layout mais antigo – pode ainda ser usado em alguns componentes) */
 
 .players-area {
   display: grid;
@@ -170,6 +182,8 @@ button:hover {
   color: #c5c5d5;
 }
 
+/* ========== SIDEBAR (chat + busca de cartas) ========== */
+
 .sidebar {
   background: #181828;
   border-radius: 0.75rem;
@@ -179,224 +193,114 @@ button:hover {
   flex-direction: column;
 }
 
-.chat {
+/* ========== CHAT ========== */
+
+.chat-container {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background: #050816;
+  border-radius: 10px;
+  border: 1px solid #1f2937;
+}
+
+.chat-header {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #1f2937;
+}
+
+.chat-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
 }
 
 .chat-messages {
   flex: 1;
+  padding: 0.5rem;
   overflow-y: auto;
-  padding-right: 0.25rem;
-  margin-bottom: 0.5rem;
-}
-
-.chat-message {
-  font-size: 0.85rem;
-  margin-bottom: 0.25rem;
-}
-
-.chat-form {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.chat-form input {
-  flex: 1;
-  padding: 0.4rem 0.6rem;
-  border-radius: 0.5rem;
-  border: 1px solid #30304a;
-  background: #10101a;
-  color: #f5f5f5;
-}
-
-@media (max-width: 840px) {
-  .room-content {
-    grid-template-columns: 1fr;
-  }
-}
-/* ===== PLAYER HUD ===== */
-
-.player-hud {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  background: #050513;
-  border-radius: 1rem;
-  padding: 0.75rem 1rem 1rem;
-  border: 1px solid #232342;
-}
-
-/* Topbar */
-.player-hud-topbar {
-  display: grid;
-  grid-template-columns: 200px 1fr 200px;
-  gap: 0.75rem;
-  margin-bottom: 0.25rem;
-}
-
-.hud-pill {
-  border-radius: 999px;
-  padding: 0.35rem 0.75rem;
-  border: 1px solid #2e2e4a;
-  background: #0c0c20;
-  color: #f5f5ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  font-size: 0.85rem;
-}
-
-.hud-life span {
-  opacity: 0.7;
-}
-
-.hud-life strong {
-  font-size: 1.1rem;
-}
-
-.hud-name {
-  font-weight: 600;
-}
-
-.hud-pass {
-  cursor: pointer;
-  justify-content: center;
-  font-weight: 600;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-  border-color: #3b82f6;
-  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.08s ease;
-}
-
-.hud-pass:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.45);
-  filter: brightness(1.05);
-}
-
-/* Zona principal */
-.player-hud-main {
-  display: grid;
-  grid-template-columns: 170px 1fr 170px;
-  gap: 0.75rem;
-  min-height: 260px;
-}
-
-.zone-left,
-.zone-right {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.zone-center {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.zone-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.zone-rect {
-  border-radius: 0.75rem;
-  border: 1px solid #262642;
-  background: #09091a;
-  padding: 0.4rem 0.55rem 0.6rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  min-height: 70px;
 }
 
-.zone-title {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.7;
-}
-
-.zone-slot-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-.zone-slot-column {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-/* "slots" onde vão ficar cartas */
-.zone-card-placeholder {
-  border-radius: 0.5rem;
-  border: 1px dashed #3b3b5f;
-  padding: 0.25rem 0.4rem;
-  font-size: 0.7rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.zone-card-placeholder.small {
-  font-size: 0.65rem;
-}
-
-/* Mão */
-.player-hud-hand {
-  margin-top: 0.25rem;
-  border-radius: 0.75rem;
-  border: 1px solid #232342;
-  background: #070716;
-  padding: 0.5rem 0.75rem;
-  min-height: 86px;
-  display: flex;
-  align-items: center;
-}
-
-.hand-empty {
+.chat-empty {
   font-size: 0.8rem;
-  opacity: 0.75;
+  opacity: 0.7;
+  text-align: center;
+  margin-top: 0.5rem;
 }
 
-.hand-cards {
+.chat-row {
+  display: flex;
+}
+
+.chat-row-me {
+  justify-content: flex-end;
+}
+
+.chat-row-other {
+  justify-content: flex-start;
+}
+
+.chat-bubble {
+  max-width: 80%;
+  padding: 0.4rem 0.6rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
+}
+
+.chat-bubble-me {
+  background: #2563eb;
+  color: #f9fafb;
+  border-bottom-right-radius: 2px;
+}
+
+.chat-bubble-other {
+  background: #111827;
+  color: #e5e7eb;
+  border-bottom-left-radius: 2px;
+}
+
+.chat-from {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  margin-bottom: 2px;
+}
+
+.chat-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.chat-input-row {
   display: flex;
   gap: 0.4rem;
-  align-items: flex-end;
+  padding: 0.5rem;
+  border-top: 1px solid #1f2937;
 }
 
-.hand-card {
-  width: 82px;
-  height: 118px;
-  border-radius: 0.6rem;
-  border: 1px solid #3b3b5f;
-  background: radial-gradient(circle at top, #1b1b32, #050512);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0.3rem;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+.chat-input-row input {
+  flex: 1;
+  background: #020617;
+  border-radius: 999px;
+  border: 1px solid #1f2937;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.85rem;
+  color: #e5e7eb;
 }
 
-.hand-card:hover {
-  transform: translateY(-6px) scale(1.03);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.7);
+.chat-input-row input:focus {
+  outline: none;
+  border-color: #2563eb;
 }
 
-.hand-card-name {
-  font-size: 0.68rem;
-  text-align: center;
-  color: #f9fafb;
+.chat-input-row button {
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
 }
 
-/* ==== OVERVIEW DA MESA 4 PLAYERS – VERSÃO ALINHADA ==== */
+/* ========== OVERVIEW DA MESA 4 PLAYERS ========== */
 
 .table-overview {
   position: relative;
@@ -411,7 +315,6 @@ button:hover {
   row-gap: 0.75rem;
 }
 
-/* linhas da mesa */
 .table-player-top,
 .table-player-bottom {
   display: flex;
@@ -426,7 +329,7 @@ button:hover {
   align-items: stretch;
 }
 
-/* stack no centro */
+/* Stack no centro */
 .table-stack {
   display: flex;
   justify-content: center;
@@ -448,28 +351,26 @@ button:hover {
   opacity: 0.85;
 }
 
-/* ==== SeatCard (placas dos jogadores) ==== */
+/* ========== SeatCard (plaquinhas da mesa) ========== */
 
 .seat-card {
   position: relative;
   cursor: pointer;
 }
 
-/* top/bottom: barra larga */
 .seat-horizontal {
   width: 100%;
   max-width: 560px;
   min-height: 72px;
 }
 
-/* left/right: retângulo vertical grande */
 .seat-vertical {
   width: 100%;
   height: 100%;
   min-height: 220px;
 }
 
-/* retângulo principal (área do player) */
+/* retângulo principal */
 .seat-rect {
   border-radius: 0.9rem;
   border: 1px solid #2f2f4f;
@@ -482,7 +383,6 @@ button:hover {
   justify-content: center;
 }
 
-/* texto dentro do retângulo */
 .seat-label {
   font-size: 0.86rem;
   text-transform: uppercase;
@@ -495,7 +395,7 @@ button:hover {
   opacity: 0.5;
 }
 
-/* posição das cápsulas de vida */
+/* cápsulas de vida */
 
 .seat-life-wrapper {
   position: absolute;
@@ -525,7 +425,6 @@ button:hover {
   transform: translateY(-50%) rotate(90deg);
 }
 
-/* estilo da cápsula de vida */
 .seat-life-pill {
   border-radius: 999px;
   border: 1px solid #3b3b5f;
@@ -546,41 +445,12 @@ button:hover {
   font-size: 0.9rem;
 }
 
-/* destaque do player focado (HUD embaixo) */
 .seat-focused .seat-rect {
   border-color: #60a5fa;
   box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.35);
 }
 
-/* responsivo – estreita um pouco em telas menores */
-@media (max-width: 1100px) {
-  .table-middle-row {
-    grid-template-columns: 180px 1fr 180px;
-  }
-}
-
-@media (max-width: 900px) {
-  .table-overview {
-    min-height: 260px;
-  }
-
-  .table-middle-row {
-    grid-template-columns: 1fr;
-    row-gap: 0.5rem;
-  }
-
-  .seat-vertical {
-    min-height: 120px;
-  }
-
-  .life-left,
-  .life-right {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-  }
-}
-/* ==== PLAYER HUD ==== */
+/* ========== PLAYER HUD (parte de baixo) ========== */
 
 .player-hud {
   background: #080812;
@@ -592,7 +462,7 @@ button:hover {
   gap: 1rem;
 }
 
-/* === TOP BAR === */
+/* Top bar */
 
 .hud-topbar {
   display: grid;
@@ -613,7 +483,12 @@ button:hover {
   color: white;
 }
 
-.hud-life-value {
+.hud-life-value span {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.hud-life-value strong {
   min-width: 2.2rem;
   text-align: center;
   font-weight: 700;
@@ -640,15 +515,13 @@ button:hover {
   background: #1f1f3a;
 }
 
+.hud-player-name span {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
 
-.hud-nick {
-  background: #101020;
-  border: 1px solid #3b3b5e;
-  padding: 0.6rem;
-  border-radius: 10px;
-  text-align: center;
-  color: white;
-  letter-spacing: 0.05em;
+.hud-player-name strong {
+  font-size: 0.95rem;
 }
 
 .hud-pass {
@@ -661,7 +534,7 @@ button:hover {
   font-weight: bold;
 }
 
-/* === MAIN GRID === */
+/* Grid principal da HUD */
 
 .hud-grid {
   display: grid;
@@ -669,7 +542,6 @@ button:hover {
   gap: 1rem;
 }
 
-/* LEFT / RIGHT PANELS */
 .hud-left,
 .hud-right {
   display: flex;
@@ -677,66 +549,99 @@ button:hover {
   gap: 1rem;
 }
 
-/* CENTER AREA */
-.hud-center {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-/* BOXES */
 .hud-box {
   border: 1px solid #3b3b5e;
   background: #0a0a1a;
   border-radius: 10px;
   color: #ccc;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
+  padding: 0.5rem 0.6rem;
 }
 
 .hud-box.small {
-  height: 180px;
+  min-height: 90px;
 }
 
-.hud-box.medium {
-  height: 140px;
+.hud-box.large {
+  min-height: 150px;
 }
 
-/* === HAND === */
+/* Mão (visual dentro do BOARD) */
 
-.hud-hand {
-  margin-top: 1rem;
-  background: #0b0b18;
-  border-radius: 10px;
-  border: 1px solid #30304a;
-  padding: 1rem;
+.hud-hand-wrapper {
+  margin-top: 0.2rem;
+}
+
+.hud-hand-empty {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.hud-hand-cards {
   display: flex;
-  justify-content: center;
-  gap: 0.8rem;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
 }
 
-.hud-hand-card {
-  width: 110px;
-  height: 155px;
-  transition: transform 0.2s;
-}
-
-.hud-hand-card img {
-  width: 100%;
-  height: 100%;
+.hud-card {
+  flex: 0 0 auto;
+  width: 80px;
   border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #1f2937;
+  box-shadow: 0 0 8px rgba(15, 23, 42, 0.8);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.hud-card-placeholder {
-  background: #151525;
-  border: 1px solid #3b3b5e;
-  border-radius: 8px;
+.hud-card img {
+  display: block;
   width: 100%;
-  height: 100%;
-  font-size: 0.7rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  height: auto;
+}
+
+.hud-card:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.9);
+}
+
+/* ========== RESPONSIVO ========== */
+
+@media (max-width: 1100px) {
+  .table-middle-row {
+    grid-template-columns: 180px 1fr 180px;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-main {
+    padding: 1rem;
+  }
+
+  .table-overview {
+    min-height: 260px;
+  }
+
+  .table-middle-row {
+    grid-template-columns: 1fr;
+    row-gap: 0.5rem;
+  }
+
+  .seat-vertical {
+    min-height: 120px;
+  }
+
+  .life-left,
+  .life-right {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  .hud-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .room-content {
+    grid-template-columns: 1fr;
+  }
 }

@@ -1,4 +1,8 @@
-import { useGame } from "../context/GameContext.jsx";
+import React from "react";
+// garante que o caminho aqui bate com a pasta onde está seu GameContext
+import { useGame } from "../contexts/GameContext"; 
+// Se não estiver usando LifeCounter, pode remover essa linha:
+ // import { LifeCounter } from "../components/LifeCounter";
 
 function PlayerBoard({ player }) {
   const { updatePlayerLife } = useGame();
@@ -6,15 +10,29 @@ function PlayerBoard({ player }) {
   // A mão vem DIRETO do backend (socket.io)
   const hand = player.hand || [];
 
+  const handleLifeChange = (delta) => {
+    console.log("🧪 Clique no life:", {
+      playerProp: player,
+      delta,
+    });
+
+    // Aqui usamos o NOME, que é o que o backend espera
+    updatePlayerLife(player.name, delta);
+  };
+
   return (
     <div className="player-board">
       <div className="player-header">
         <h3>{player.name}</h3>
 
         <div className="life-controls">
-          <button onClick={() => updatePlayerLife(player.name, -1)}>-</button>
-          <span className="life-value">{player.life}</span>
-          <button onClick={() => updatePlayerLife(player.name, +1)}>+</button>
+          <button onClick={() => handleLifeChange(-1)}>-</button>
+
+          <span className="life-value">
+            {player.life}
+          </span>
+
+          <button onClick={() => handleLifeChange(+1)}>+</button>
         </div>
       </div>
 
@@ -29,7 +47,7 @@ function PlayerBoard({ player }) {
             gap: "8px",
             marginTop: "8px",
             overflowX: "auto",
-            paddingBottom: "8px"
+            paddingBottom: "8px",
           }}
         >
           {hand.map((c) => (
