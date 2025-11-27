@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import { useGame } from "../context/GameContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
-
 const API_URL = "http://localhost:4000";
 
 function DeckPanel() {
@@ -17,6 +16,9 @@ function DeckPanel() {
     shuffleLibrary,
     tutorFromLibrary,
     setCommanderCard,
+    // 🔹 novas funções que você vai criar no GameContext
+    returnHandToLibrary,
+    mulligan,
   } = useGame();
   const { token } = useAuth();
 
@@ -30,6 +32,7 @@ function DeckPanel() {
   // pegar o player local na lista da sala
   const me = players.find((p) => p.name === playerName);
   const commanderCard = me?.commanderCard || null;
+  const handSize = me?.hand?.length || 0; // 👈 qtde de cartas na mão
 
   // carregar lista de decks do usuário
   useEffect(() => {
@@ -71,14 +74,11 @@ function DeckPanel() {
     setError("");
 
     try {
-      const res = await fetch(
-        `${API_URL}/decks/${selectedDeckId}/resolved`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await fetch(`${API_URL}/decks/${selectedDeckId}/resolved`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao carregar deck");
@@ -119,6 +119,17 @@ function DeckPanel() {
     setShowLibraryView(false);
   }
 
+  // 🔹 NOVAS AÇÕES
+  function handleReturnHand() {
+    if (!returnHandToLibrary) return;
+    returnHandToLibrary();
+  }
+
+  function handleMulligan() {
+    if (!mulligan) return;
+    mulligan();
+  }
+
   return (
     <div className="deck-panel">
       <h3 className="deck-panel-title">Card List / Deck</h3>
@@ -152,8 +163,14 @@ function DeckPanel() {
             </label>
           </div>
 
-          <div className="deck-panel-row deck-panel-row-buttons">
-            <button type="button" onClick={handleLoadDeck} disabled={loadingLoad}>
+          {/* BOTÕES – estilizados */}
+          <div className="deck-panel-row deck-panel-row-buttons deck-panel-row-full">
+            <button
+              type="button"
+              onClick={handleLoadDeck}
+              disabled={loadingLoad}
+              className="deck-btn deck-btn-primary deck-btn-full"
+            >
               {loadingLoad ? "Carregando..." : "Carregar + Embaralhar"}
             </button>
           </div>
@@ -163,6 +180,7 @@ function DeckPanel() {
               type="button"
               onClick={handleDrawOne}
               disabled={librarySize <= 0}
+              className="deck-btn deck-btn-primary"
             >
               Comprar 1
             </button>
@@ -170,6 +188,7 @@ function DeckPanel() {
               type="button"
               onClick={handleDrawSeven}
               disabled={librarySize < 7}
+              className="deck-btn deck-btn-primary"
             >
               Comprar 7 (mão inicial)
             </button>
@@ -180,6 +199,7 @@ function DeckPanel() {
               type="button"
               onClick={handleShuffleRemaining}
               disabled={librarySize <= 1}
+              className="deck-btn deck-btn-outline"
             >
               Embaralhar restante
             </button>
@@ -187,8 +207,29 @@ function DeckPanel() {
               type="button"
               onClick={handleToggleLibraryView}
               disabled={librarySize === 0}
+              className="deck-btn deck-btn-outline"
             >
               {showLibraryView ? "Fechar deck" : "Ver cartas do deck"}
+            </button>
+          </div>
+
+          {/* NOVA LINHA: devolver mão / mulligan */}
+          <div className="deck-panel-row deck-panel-row-buttons">
+            <button
+              type="button"
+              onClick={handleReturnHand}
+              disabled={handSize === 0}
+              className="deck-btn deck-btn-secondary"
+            >
+              ↩ Devolver mão ao baralho
+            </button>
+            <button
+              type="button"
+              onClick={handleMulligan}
+              disabled={handSize === 0 || librarySize + handSize < 7}
+              className="deck-btn deck-btn-secondary"
+            >
+              🎲 Mulligan (nova mão)
             </button>
           </div>
 
@@ -223,12 +264,12 @@ function DeckPanel() {
             <div className="deck-library-view">
               <div className="deck-library-header">
                 <span>
-                  Cartas restantes no deck:{" "}
-                  <strong>{librarySize}</strong>
+                  Cartas restantes no deck: <strong>{librarySize}</strong>
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowLibraryView(false)}
+                  className="deck-btn deck-btn-outline deck-btn-sm"
                 >
                   Fechar
                 </button>

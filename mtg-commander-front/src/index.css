@@ -1058,3 +1058,68 @@ button:hover {
   text-overflow: ellipsis;
 }
 
+.deck-panel-row-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.deck-panel-row-full {
+  margin-top: 0.5rem;
+}
+
+.deck-btn {
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: 0.15s ease;
+  white-space: nowrap;
+}
+
+.deck-btn-full {
+  width: 100%;
+}
+
+.deck-btn-sm {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.deck-btn-primary {
+  background: #4b7cff;
+  color: #fff;
+}
+
+.deck-btn-primary:hover:not(:disabled) {
+  background: #6b92ff;
+  transform: translateY(-1px);
+}
+
+.deck-btn-secondary {
+  background: #2d2f3b;
+  color: #fff;
+}
+
+.deck-btn-secondary:hover:not(:disabled) {
+  background: #3b3e4c;
+  transform: translateY(-1px);
+}
+
+.deck-btn-outline {
+  background: transparent;
+  border: 1px solid #4b7cff;
+  color: #cfd7ff;
+}
+
+.deck-btn-outline:hover:not(:disabled) {
+  background: rgba(75, 124, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.deck-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}

@@ -148,26 +148,22 @@ export function GameProvider({ children }) {
 
   // Comprar N cartas do topo do deck → vão pra mão (via socket)
   function drawCards(count) {
-  if (!count || count <= 0) return;
+    if (!count || count <= 0) return;
 
-  // usa o snapshot atual do deck
-  const currentLibrary = library || [];
-  if (currentLibrary.length === 0) return;
+    const currentLibrary = library || [];
+    if (currentLibrary.length === 0) return;
 
-  const n = Math.min(count, currentLibrary.length);
+    const n = Math.min(count, currentLibrary.length);
 
-  // cartas compradas
-  const drawnCards = currentLibrary.slice(0, n);
-  const remaining = currentLibrary.slice(n);
+    const drawnCards = currentLibrary.slice(0, n);
+    const remaining = currentLibrary.slice(n);
 
-  // atualiza o deck local
-  setLibrary(remaining);
+    setLibrary(remaining);
 
-  // manda as cartas compradas pra mão (via socket)
-  drawnCards.forEach((card) => {
-    addCardToHand(card);
-  });
-}
+    drawnCards.forEach((card) => {
+      addCardToHand(card);
+    });
+  }
 
   // Embaralhar somente o que restou no deck
   function shuffleLibrary() {
@@ -183,32 +179,28 @@ export function GameProvider({ children }) {
 
   // Tutor: escolhe 1 carta do deck, manda para a mão e embaralha o resto
   function tutorFromLibrary(instanceId) {
-  if (!instanceId) return;
+    if (!instanceId) return;
 
-  const currentLibrary = library || [];
-  const idx = currentLibrary.findIndex((c) => c.instanceId === instanceId);
-  if (idx === -1) return;
+    const currentLibrary = library || [];
+    const idx = currentLibrary.findIndex((c) => c.instanceId === instanceId);
+    if (idx === -1) return;
 
-  const selectedCard = currentLibrary[idx];
+    const selectedCard = currentLibrary[idx];
 
-  // remove a carta do deck
-  const newLib = [
-    ...currentLibrary.slice(0, idx),
-    ...currentLibrary.slice(idx + 1),
-  ];
+    const newLib = [
+      ...currentLibrary.slice(0, idx),
+      ...currentLibrary.slice(idx + 1),
+    ];
 
-  // embaralha o resto
-  for (let i = newLib.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newLib[i], newLib[j]] = [newLib[j], newLib[i]];
+    for (let i = newLib.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newLib[i], newLib[j]] = [newLib[j], newLib[i]];
+    }
+
+    setLibrary(newLib);
+
+    addCardToHand(selectedCard);
   }
-
-  setLibrary(newLib);
-
-  // manda a carta tutorada pra mão
-  addCardToHand(selectedCard);
-}
-
 
   function castCommander() {
     if (!roomCode || !playerName) return;
@@ -217,6 +209,68 @@ export function GameProvider({ children }) {
       roomCode,
       playerName,
     });
+  }
+
+  // =======================
+  //  NOVAS FUNÇÕES: MULLIGAN
+  // =======================
+
+  // helper pra achar "eu" nos players
+  function getMe() {
+    return players.find((p) => p.name === playerName);
+  }
+
+  // pedir pro servidor esvaziar minha mão
+  function clearHandOnServer() {
+    if (!roomCode || !playerName) return;
+
+    socket.emit("clear-hand", {
+      roomCode,
+      playerName,
+    });
+  }
+
+  // devolver a mão pro deck e só isso
+  function returnHandToLibrary() {
+    const me = getMe();
+    if (!me || !me.hand || me.hand.length === 0) return;
+
+    const handCards = me.hand;
+
+    setLibrary((prev) => {
+      const merged = [...prev, ...handCards];
+      const arr = [...merged];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    });
+
+    clearHandOnServer();
+  }
+
+  // mulligan: devolve mão, embaralha tudo, limpa no server e compra 7 de novo
+  function mulligan() {
+    const me = getMe();
+    if (!me || !me.hand || me.hand.length === 0) return;
+
+    const handCards = me.hand;
+
+    setLibrary((prev) => {
+      const merged = [...prev, ...handCards];
+      const arr = [...merged];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    });
+
+    clearHandOnServer();
+
+    // compra 7 novas
+    drawCards(7);
   }
 
   const librarySize = library.length;
@@ -242,6 +296,9 @@ export function GameProvider({ children }) {
     setCommanderCard,
     castCommander,
     commanderCard,
+    // 🔹 exportando pro DeckPanel
+    returnHandToLibrary,
+    mulligan,
   };
 
   return (

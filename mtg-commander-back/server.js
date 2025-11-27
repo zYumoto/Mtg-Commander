@@ -156,9 +156,7 @@ io.on('connection', (socket) => {
   // ======================
   // Entrar em uma sala
   // ======================
-  // ======================
-  // Entrar em uma sala
-  // ======================
+ 
   socket.on('join-room', async ({ roomCode, playerName }) => {
     if (!roomCode || !playerName) return;
 
@@ -311,6 +309,27 @@ io.on('connection', (socket) => {
     io.to(code).emit('room-state', getRoomState(code));
     await syncRoomToDb(code);
   });
+
+  socket.on("clear-hand", ({ roomCode, playerName }) => {
+  const code = roomCode.toUpperCase();
+  const room = rooms[code];
+  if (!room) return;
+
+  const player = Object.values(room.players).find(
+    (p) => p.name === playerName
+  );
+  if (!player) return;
+
+  player.hand = [];
+
+  // aqui usa o mesmo evento que você já usa pro front atualizar
+  io.to(code).emit("room-state", {
+    roomCode: code,
+    players: Object.values(room.players),
+    messages: room.messages || [],
+  });
+});
+
 
   // ===== Definir comandante (APENAS UM LISTENER) =====
   socket.on("set-commander-card", async ({ roomCode, playerName, card }) => {
