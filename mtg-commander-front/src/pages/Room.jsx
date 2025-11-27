@@ -1,77 +1,34 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext.jsx";
-import { socket } from "../socket";
 
 import PlayerHud from "../components/PlayerHud.jsx";
 import Chat from "../components/Chat.jsx";
-import CardSearch from "../components/CardSearch.jsx";
+import DeckPanel from "../components/DeckPanel.jsx";
 
 function Room() {
   const navigate = useNavigate();
-  const {
-    roomCode,
-    playerName,
-    players = [],
-    updatePlayerLife,
-  } = useGame();
+  const { roomCode, playerName, players = [], updatePlayerLife } = useGame();
 
-  // ⭐ estado sincronizado vindo do servidor
-  const [startTime, setStartTime] = useState(null);
-  const [elapsed, setElapsed] = useState(0);
-
-  // quem é o dono da sala?
-  const roomOwner = players.length > 0 ? players[0].name : null;
-
-  // receber evento do backend
-  useEffect(() => {
-    socket.on("game-started", ({ startTime }) => {
-      setStartTime(startTime);
-    });
-
-    return () => socket.off("game-started");
-  }, []);
-
-  // contador sincronizado
-  useEffect(() => {
-    let interval;
-    if (startTime) {
-      interval = setInterval(() => {
-        setElapsed(Math.floor((Date.now() - startTime) / 1000));
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [startTime]);
-
-  const timerLabel = useMemo(() => {
-    const m = Math.floor(elapsed / 60);
-    const s = elapsed % 60;
-    return `${m.toString().padStart(2, "0")}:${s
-      .toString()
-      .padStart(2, "0")}`;
-  }, [elapsed]);
-
-  // quando dono clica
-  function handleStartGame() {
-    socket.emit("start-game", {
-      roomCode,
-      playerName,
-    });
-  }
-
-  // redirecionar se sem sala
+  // se entrar sem sala (refresh direto na URL, por ex.), volta pro lobby
   if (!roomCode) {
     return (
       <section className="page-center" style={{ maxWidth: "600px" }}>
         <h2>Sala não encontrada</h2>
+        <p>Parece que você não está conectado a nenhuma sala.</p>
         <button onClick={() => navigate("/lobby")}>Voltar para o Lobby</button>
       </section>
     );
   }
 
-  // SEATS (mapeamento dos jogadores)
+  // mapeia players para os 4 "lugares" da mesa
   const seats = useMemo(() => {
-    const result = { top: null, left: null, right: null, bottom: null };
+    const result = {
+      top: null,
+      left: null,
+      right: null,
+      bottom: null,
+    };
 
     if (players.length === 0) return result;
 
@@ -82,15 +39,15 @@ function Room() {
 
     const others = players.filter((p) => p.id !== selfPlayer.id);
     const order = ["top", "left", "right"];
+
     others.forEach((p, index) => {
-      const seat = order[index];
-      if (seat) result[seat] = p;
+      const seatName = order[index];
+      if (seatName) result[seatName] = p;
     });
 
     return result;
   }, [players, playerName]);
 
-  // focado
   const selfPlayer =
     players.find((p) => p.name === playerName) || seats.bottom || players[0];
 
@@ -98,9 +55,16 @@ function Room() {
   const focusedPlayer =
     players.find((p) => p.id === focusedId) || selfPlayer || null;
 
+  function handleSeatClick(player) {
+    if (!player) return;
+    setFocusedId(player.id);
+  }
+
   return (
-    <section className="page-center" style={{ maxWidth: "1400px" }}>
+    <section className="room">
+      {/* Cabeçalho da sala */}
       <header
+        className="room-header"
         style={{
           width: "100%",
           marginBottom: "0.75rem",
@@ -111,104 +75,95 @@ function Room() {
       >
         <div>
           <h2 style={{ marginBottom: "0.1rem" }}>Sala {roomCode}</h2>
-          <p style={{ fontSize: "0.85rem", opacity: 0.8 }}>
-            Jogando como <strong>{playerName}</strong>
-          </p>
+          {playerName && (
+            <p style={{ fontSize: "0.85rem", opacity: 0.8 }}>
+              Jogando como <strong>{playerName}</strong>
+            </p>
+          )}
         </div>
 
-        {/* BOTÕES DO TOPO */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: "0.35rem",
-          }}
-        >
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <button onClick={() => navigate("/lobby")}>Sair da sala</button>
-
-          {/* apenas dono vê o botão */}
-          {playerName === roomOwner && !startTime && (
-            <button type="button" onClick={handleStartGame}>
-              Iniciar partida
-            </button>
-          )}
-
-          {/* timer visível para todos */}
-          {startTime && (
-            <span style={{ fontSize: "0.85rem" }}>
-              Tempo: <strong>{timerLabel}</strong>
-            </span>
-          )}
         </div>
       </header>
 
-      {/* ====== LAYOUT DA MESA ====== */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(260px, 320px) 1fr",
-          gap: "1rem",
-          width: "100%",
-        }}
-      >
-        {/* ESQUERDA */}
+      <div className="room-content">
+        {/* LADO ESQUERDO: chat + painel de deck */}
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          <div className="form-card" style={{ padding: "0.75rem" }}>
-            <h3 style={{ marginBottom: "0.5rem", fontSize: "0.95rem" }}>
-              Busca de cartas
-            </h3>
-            <CardSearch />
+          {/* Chat */}
+          <div className="form-card" style={{ padding: 0, minHeight: "260px" }}>
+            <Chat />
           </div>
 
-          <div className="form-card" style={{ padding: 0 }}>
-            <Chat />
+          {/* Card List / Deck (novo painel) */}
+          <div className="form-card" style={{ padding: "0.75rem" }}>
+            <DeckPanel />
           </div>
         </div>
 
-        {/* DIREITA: mesa + HUD */}
+        {/* LADO DIREITO: mesa 4 players + HUD */}
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          {/* overview da mesa */}
           <div className="table-overview">
-            <div className="table-player table-player-top">
+            <div className="table-player-top">
               <SeatCard
+                labelPosition="bottom"
                 player={seats.top}
-                onClick={() => seats.top && setFocusedId(seats.top.id)}
+                isFocused={focusedPlayer?.id === seats.top?.id}
+                isSelf={seats.top?.name === playerName}
+                onClick={() => handleSeatClick(seats.top)}
               />
             </div>
 
             <div className="table-middle-row">
-              <SeatCard
-                player={seats.left}
-                onClick={() => seats.left && setFocusedId(seats.left.id)}
-                vertical
-              />
+              <div className="table-player-left">
+                <SeatCard
+                  labelPosition="right"
+                  vertical
+                  player={seats.left}
+                  isFocused={focusedPlayer?.id === seats.left?.id}
+                  isSelf={seats.left?.name === playerName}
+                  onClick={() => handleSeatClick(seats.left)}
+                />
+              </div>
 
               <div className="table-stack">
                 <div className="table-stack-box">STACK</div>
               </div>
 
-              <SeatCard
-                player={seats.right}
-                onClick={() => seats.right && setFocusedId(seats.right.id)}
-                vertical
-              />
+              <div className="table-player-right">
+                <SeatCard
+                  labelPosition="left"
+                  vertical
+                  player={seats.right}
+                  isFocused={focusedPlayer?.id === seats.right?.id}
+                  isSelf={seats.right?.name === playerName}
+                  onClick={() => handleSeatClick(seats.right)}
+                />
+              </div>
             </div>
 
-            <div className="table-player table-player-bottom">
+            <div className="table-player-bottom">
               <SeatCard
+                labelPosition="top"
                 player={seats.bottom}
-                onClick={() => seats.bottom && setFocusedId(seats.bottom.id)}
+                isFocused={focusedPlayer?.id === seats.bottom?.id}
+                isSelf={seats.bottom?.name === playerName}
+                onClick={() => handleSeatClick(seats.bottom)}
               />
             </div>
           </div>
 
-          {/* HUD */}
+          {/* HUD do player focado */}
           {focusedPlayer && (
             <PlayerHud
               player={focusedPlayer}
-              onLifeChange={(delta) =>
-                updatePlayerLife(focusedPlayer.name, delta)
-              }
+              onPassTurn={() => {
+                console.log("Passar turno (TODO) para", focusedPlayer.name);
+              }}
+              onLifeChange={(delta) => {
+                updatePlayerLife(focusedPlayer.name, delta);
+              }}
             />
           )}
         </div>
@@ -217,29 +172,38 @@ function Room() {
   );
 }
 
+/** SeatCard: plaquinha em volta da mesa */
 function SeatCard({
   player,
   onClick,
   vertical = false,
+  labelPosition = "top",
+  isFocused = false,
+  isSelf = false,
 }) {
   const life = player?.life ?? 40;
-  const name = player?.name || "Vago";
+  const name = player?.name || "Aguardando jogador";
 
   return (
     <div
-      className={`seat-card ${vertical ? "seat-vertical" : "seat-horizontal"}`}
+      className={`seat-card ${vertical ? "seat-vertical" : "seat-horizontal"} ${
+        isFocused ? "seat-focused" : ""
+      }`}
       onClick={player ? onClick : undefined}
     >
       <div className="seat-rect">
         {!player ? (
-          <span>Aguardando jogador</span>
+          <span className="seat-empty">Aguardando jogador</span>
         ) : (
-          <span>{name}</span>
+          <span className="seat-label">
+            {name}
+            {isSelf && " (você)"}
+          </span>
         )}
       </div>
 
       {player && (
-        <div className="seat-life-wrapper">
+        <div className={`seat-life-wrapper life-${labelPosition}`}>
           <div className="seat-life-pill">
             <span>vida</span>
             <strong>{life}</strong>

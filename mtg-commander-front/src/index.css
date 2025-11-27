@@ -57,8 +57,8 @@ button:hover {
 }
 
 .app-main {
-  flex: 1;
-  padding: 1.5rem;
+   flex: 1;
+  padding: 1rem 1.5rem;
 }
 
 /* ========== PÁGINAS / FORMULÁRIOS ========== */
@@ -87,6 +87,58 @@ button:hover {
   margin-bottom: 1.5rem;
   text-align: left;
   border: 1px solid #26263f;
+}
+.deck-panel-title {
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.deck-panel-sub {
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.deck-panel-error {
+  color: #f97373;
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.deck-panel-info {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.deck-panel-row {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.deck-panel-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.deck-panel-row select {
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid #30304a;
+  background: #10101a;
+  color: #f5f5f5;
+}
+
+.deck-panel-row-buttons {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.deck-panel-footer {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  opacity: 0.85;
 }
 
 .form-card h3 {
@@ -120,6 +172,7 @@ button:hover {
 
 .room {
   max-width: 1400px;
+    max-width: 2000px; 
   margin: 0 auto;
 }
 
@@ -453,14 +506,18 @@ button:hover {
 /* ========== PLAYER HUD (parte de baixo) ========== */
 
 .player-hud {
+  width: 100%;
+  max-width: none !important;
+  margin: 0;
+  padding: 1rem;
   background: #080812;
   border: 1px solid #2a2a40;
   border-radius: 1rem;
-  padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
+
 
 /* Top bar */
 
@@ -643,5 +700,285 @@ button:hover {
 
   .room-content {
     grid-template-columns: 1fr;
+  }
+}
+/* === HUD – ZONAS (Campo / Cemitério / Exílio) === */
+
+.hud-zones-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-bottom: 0.4rem;
+}
+
+.hud-zones-sub {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.hud-zones-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.hud-zone {
+  background: #050516;
+  border-radius: 0.6rem;
+  border: 1px solid #262642;
+  padding: 0.4rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 70px;
+}
+
+.hud-zone-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.hud-zone-title span {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
+.hud-zone-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.hud-zone-placeholder {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* responsivo das zonas */
+
+@media (max-width: 900px) {
+  .hud-zones-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* ===== HUD – LAYOUT DO BOARD (desenho) ===== */
+
+.hud-board-layout {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+
+/* quadro grande do board */
+.board-main {
+  width: 100%;
+  margin: 0;
+  border-radius: 0.9rem;
+  border: 1px solid #2a2a40;
+  background: #050515;
+  padding: 0.7rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+
+/* linha de cima: card list + commander / espaço / cemitério */
+.board-top-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) 1fr 130px;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+.board-left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.board-center-spacer {
+  /* só pra segurar o layout, fica vazio mesmo */
+}
+
+/* retângulos internos (card list, commander, zonas, etc.) */
+.board-rect {
+  border-radius: 0.6rem;
+  border: 1px solid #37375a;
+  background: #070716;
+  padding: 0.45rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 80px;
+}
+
+.board-rect-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+  margin-bottom: 0.1rem;
+}
+
+.board-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.lands-row {
+  grid-template-columns: 1fr;
+}
+
+.board-zone {
+  min-height: 90px;
+}
+
+/* helper texts dentro dos retângulos */
+.board-helper {
+  font-size: 0.75rem;
+  opacity: 0.78;
+}
+
+.board-error {
+  font-size: 0.75rem;
+  color: #f97373;
+}
+
+/* inputs/botões dentro de CARD LIST */
+
+.board-select {
+  width: 100%;
+  margin-top: 0.15rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.45rem;
+  border: 1px solid #3b3b5e;
+  background: #050512;
+  color: #e5e7eb;
+  font-size: 0.8rem;
+}
+
+.board-button {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.5rem;
+  background: #2563eb;
+}
+
+.board-button.small {
+  background: #1f2937;
+}
+
+.board-button-row {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+/* ===== FAIXA DA MÃO ===== */
+
+.board-hand {
+  width: 100%;
+  border-radius: 0.9rem;
+  border: 1px solid #2a2a40;
+  background: #050515;
+  padding: 0.6rem 0.8rem;
+  min-height: 120px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;   /* <<< CENTRALIZA o conteúdo */
+  overflow-x: auto;
+}
+
+.board-hand-cards {
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-end;
+  justify-content: center;   /* <<< leque saindo do centro */
+  /* tira qualquer width: 100% se tiver */
+}
+
+.board-hand-card {
+  flex: 0 0 auto;
+  width: 90px;
+  height: 126px;
+  border-radius: 0.6rem;
+  overflow: hidden;
+  border: 1px solid #1f2937;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.65);
+  background: radial-gradient(circle at top, #1b1b32, #050512);
+  transform-origin: bottom center;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.board-hand-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.board-hand-card:hover {
+  transform: translateY(-10px) scale(1.04);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.8);
+}
+
+/* se não tiver carta na mão */
+.hud-hand-empty {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+/* responsivo */
+@media (max-width: 900px) {
+  .board-top-row {
+    grid-template-columns: 1fr;
+  }
+
+  .board-row {
+    grid-template-columns: 1fr;
+  }
+}
+/* ===== PREVIEW GRANDE DA CARTA (HOVER) ===== */
+
+.card-zoom-overlay {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none; /* não atrapalha clique na mesa */
+}
+
+.card-zoom-overlay img {
+  width: 350px;          /* ajusta o tamanho que você achar melhor */
+  max-height: 80vh;
+  border-radius: 0.75rem;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.85);
+  border: 1px solid #3b3b5e;
+}
+
+.card-zoom-title {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  text-align: center;
+  opacity: 0.9;
+}
+
+/* em telas menores, diminui um pouco o zoom */
+@media (max-width: 900px) {
+  .card-zoom-overlay img {
+    width: 200px;
   }
 }
