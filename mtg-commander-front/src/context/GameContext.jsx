@@ -14,12 +14,12 @@ export function GameProvider({ children }) {
   // deck local (somente cartas que ainda estão no deck)
   const [library, setLibrary] = useState([]);
 
-  // comandante local (para o HUD)
+  // comandante local (para HUD e DeckPanel)
   const [commanderCard, setCommanderCardState] = useState(null);
 
-  // ===== commander: salva local + avisa servidor =====
+  // ===== Commander: salva local + avisa servidor =====
   function setCommanderCard(card) {
-    setCommanderCardState(card); // HUD local
+    setCommanderCardState(card);
 
     if (!roomCode || !playerName || !card) return;
 
@@ -91,12 +91,15 @@ export function GameProvider({ children }) {
 
   // Enviar mensagem de chat
   function sendMessage(text) {
-    if (!roomCode || !playerName || !text.trim()) return;
+    if (!roomCode || !playerName) return;
+
+    const trimmed = text.trim();
+    if (!trimmed) return;
 
     socket.emit("chat-message", {
       roomCode,
       from: playerName,
-      text: text.trim(),
+      text: trimmed,
     });
   }
 
@@ -111,9 +114,11 @@ export function GameProvider({ children }) {
     });
   }
 
-  // =============== DECK LOCAL (library) ===============
+  // =======================
+  //  LÓGICA DO DECK LOCAL
+  // =======================
 
-  // Recebe as cartas resolvidas (com quantity) e expande o deck
+  // recebe as cartas resolvidas (com quantity) e monta o deck
   function setDeckFromResolved(resolvedCards) {
     if (!resolvedCards || resolvedCards.length === 0) {
       setLibrary([]);
@@ -132,7 +137,7 @@ export function GameProvider({ children }) {
       }
     });
 
-    // embaralha o deck (Fisher–Yates)
+    // embaralha (Fisher–Yates)
     for (let i = expanded.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [expanded[i], expanded[j]] = [expanded[j], expanded[i]];
@@ -141,23 +146,28 @@ export function GameProvider({ children }) {
     setLibrary(expanded);
   }
 
-  // Comprar N cartas → só emite para o servidor
+  // Comprar N cartas do topo do deck → vão pra mão (via socket)
   function drawCards(count) {
-    if (!count || count <= 0) return;
+  if (!count || count <= 0) return;
 
-    setLibrary((prev) => {
-      if (!prev || prev.length === 0) return prev;
+  // usa o snapshot atual do deck
+  const currentLibrary = library || [];
+  if (currentLibrary.length === 0) return;
 
-      const n = Math.min(count, prev.length);
-      const drawn = prev.slice(0, n);
+  const n = Math.min(count, currentLibrary.length);
 
-      drawn.forEach((card) => {
-        addCardToHand(card); // servidor cuida da mão
-      });
+  // cartas compradas
+  const drawnCards = currentLibrary.slice(0, n);
+  const remaining = currentLibrary.slice(n);
 
-      return prev.slice(n);
-    });
-  }
+  // atualiza o deck local
+  setLibrary(remaining);
+
+  // manda as cartas compradas pra mão (via socket)
+  drawnCards.forEach((card) => {
+    addCardToHand(card);
+  });
+}
 
   // Embaralhar somente o que restou no deck
   function shuffleLibrary() {
@@ -171,27 +181,34 @@ export function GameProvider({ children }) {
     });
   }
 
-  // Tutor: tira 1 carta do deck, manda pra mão e embaralha o resto
+  // Tutor: escolhe 1 carta do deck, manda para a mão e embaralha o resto
   function tutorFromLibrary(instanceId) {
-    if (!instanceId) return;
+  if (!instanceId) return;
 
-    setLibrary((prev) => {
-      const idx = prev.findIndex((c) => c.instanceId === instanceId);
-      if (idx === -1) return prev;
+  const currentLibrary = library || [];
+  const idx = currentLibrary.findIndex((c) => c.instanceId === instanceId);
+  if (idx === -1) return;
 
-      const card = prev[idx];
-      const newLib = [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+  const selectedCard = currentLibrary[idx];
 
-      addCardToHand(card);
+  // remove a carta do deck
+  const newLib = [
+    ...currentLibrary.slice(0, idx),
+    ...currentLibrary.slice(idx + 1),
+  ];
 
-      for (let i = newLib.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [newLib[i], newLib[j]] = [newLib[j], newLib[i]];
-      }
-
-      return newLib;
-    });
+  // embaralha o resto
+  for (let i = newLib.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newLib[i], newLib[j]] = [newLib[j], newLib[i]];
   }
+
+  setLibrary(newLib);
+
+  // manda a carta tutorada pra mão
+  addCardToHand(selectedCard);
+}
+
 
   function castCommander() {
     if (!roomCode || !playerName) return;
