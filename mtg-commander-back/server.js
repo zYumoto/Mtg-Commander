@@ -48,6 +48,11 @@ const PlayerSchema = new mongoose.Schema(
     poison: Number,
     commanderDamage: [CommanderDamageSchema],
     hand: [mongoose.Schema.Types.Mixed], // cartas na mão
+    commanderCard: mongoose.Schema.Types.Mixed, // comandante resolvido
+    commanderCastCount: { type: Number, default: 0 },  // quantas vezes já foi castado
+    battlefield: [mongoose.Schema.Types.Mixed],        // permanentes em campo
+    graveyard: [mongoose.Schema.Types.Mixed],
+    exile: [mongoose.Schema.Types.Mixed],
   },
   { _id: false }
 );
@@ -91,14 +96,21 @@ function roomToDoc(code) {
   if (!room) return null;
 
   const playersArray = Object.values(room.players).map((p) => ({
-    name: p.name,
-    life: p.life,
-    poison: p.poison,
-    commanderDamage: Object.entries(p.commanderDamage || {}).map(
-      ([source, damage]) => ({ source, damage })
-    ),
-    hand: p.hand || [],
-  }));
+  name: p.name,
+  life: p.life,
+  poison: p.poison,
+  commanderDamage: Object.entries(p.commanderDamage || {}).map(
+    ([source, damage]) => ({ source, damage })
+  ),
+ hand: p.hand || [],
+  commanderCard: p.commanderCard || null,
+  commanderCastCount: p.commanderCastCount || 0,
+  battlefield: p.battlefield || [],
+  graveyard: p.graveyard || [],
+  exile: p.exile || [],
+}));
+
+
 
   const messagesArray = (room.messages || []).map((m) => ({
     from: m.from,
@@ -162,19 +174,25 @@ io.on('connection', (socket) => {
         // Carrega do banco
         const playersMap = {};
         (roomDoc.players || []).forEach((p) => {
-          const fakeId = `${p.name}-${Date.now()}-${Math.random()}`;
-          playersMap[fakeId] = {
-            id: fakeId,
-            name: p.name,
-            life: p.life,
-            poison: p.poison,
-            commanderDamage: (p.commanderDamage || []).reduce((acc, cd) => {
-              acc[cd.source] = cd.damage;
-              return acc;
-            }, {}),
-            hand: p.hand || [],
-          };
-        });
+  const fakeId = `${p.name}-${Date.now()}-${Math.random()}`;
+  playersMap[fakeId] = {
+    id: fakeId,
+    name: p.name,
+    life: p.life,
+    poison: p.poison,
+    commanderDamage: (p.commanderDamage || []).reduce((acc, cd) => {
+      acc[cd.source] = cd.damage;
+      return acc;
+    }, {}),
+    hand: p.hand || [],
+commanderCard: p.commanderCard || null,
+      commanderCastCount: p.commanderCastCount || 0,
+      battlefield: p.battlefield || [],
+      graveyard: p.graveyard || [],
+      exile: p.exile || [],
+      };
+});
+
 
         rooms[code] = {
           code,
@@ -223,16 +241,23 @@ io.on('connection', (socket) => {
       delete rooms[code].players[oldKey];
 
       player = { ...p, id: socket.id };
-    } else {
-      player = {
-        id: socket.id,
-        name: playerName,
-        life: 40,
-        poison: 0,
-        commanderDamage: {},
-        hand: [],
-      };
-    }
+      } else {
+    player = {
+      id: socket.id,
+      name: playerName,
+      life: 40,
+      poison: 0,
+      commanderDamage: {},
+      hand: [],
+      commanderCard: null,
+      commanderCastCount: 0,
+      battlefield: [],
+      graveyard: [],
+      exile: [],
+    };
+  }
+
+
 
     rooms[code].players[socket.id] = player;
 
@@ -309,7 +334,7 @@ io.on('connection', (socket) => {
 
     const newCard = {
       ...card,
-      instanceId: `${Date.now()}-${Math.random()}`, // id único por cópia
+  instanceId: card.instanceId || `${Date.now()}-${Math.random()}`,
     };
 
     const newHand = [...(player.hand || []), newCard];
@@ -323,6 +348,65 @@ io.on('connection', (socket) => {
     await syncRoomToDb(code);
   });
 
+    // Definir comandante do jogador
+  socket.on("set-commander-card", async ({ roomCode, playerName, card }) => {
+    const code = roomCode?.toUpperCase();
+    const room = rooms[code];
+    if (!room || !card) return;
+
+    const playerEntry = Object.entries(room.players).find(
+      ([, p]) => p.name === playerName
+    );
+    if (!playerEntry) return;
+
+    const [socketId, player] = playerEntry;
+
+    room.players[socketId] = {
+      ...player,
+      commanderCard: card,
+    };
+
+    io.to(code).emit("room-state", getRoomState(code));
+    await syncRoomToDb(code);
+  });
+
+  // Jogador "baixa" o comandante para o campo
+  socket.on("cast-commander", async ({ roomCode, playerName }) => {
+    const code = roomCode?.toUpperCase();
+    const room = rooms[code];
+    if (!room) return;
+
+    const playerEntry = Object.entries(room.players).find(
+      ([, p]) => p.name === playerName
+    );
+    if (!playerEntry) return;
+
+    const [socketId, player] = playerEntry;
+
+    if (!player.commanderCard) return;
+
+    const currentCount = player.commanderCastCount || 0;
+
+    const newBattlefield = [
+      ...(player.battlefield || []),
+      {
+        ...player.commanderCard,
+        instanceId: `${player.commanderCard.name}-commander-${Date.now()}-${Math.random()}`,
+        isCommander: true,
+      },
+    ];
+
+    room.players[socketId] = {
+      ...player,
+      commanderCastCount: currentCount + 1,
+      battlefield: newBattlefield,
+    };
+
+    io.to(code).emit("room-state", getRoomState(code));
+    await syncRoomToDb(code);
+  });
+
+   
   // ======================
   // Mensagens de chat
   // ======================

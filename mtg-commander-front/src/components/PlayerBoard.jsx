@@ -1,6 +1,6 @@
 import React from "react";
 // garante que o caminho aqui bate com a pasta onde está seu GameContext
-import { useGame } from "../contexts/GameContext"; 
+import { useGame } from "../context/GameContext.jsx";
 // Se não estiver usando LifeCounter, pode remover essa linha:
  // import { LifeCounter } from "../components/LifeCounter";
 

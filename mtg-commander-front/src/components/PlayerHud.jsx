@@ -2,23 +2,31 @@ import React, { useState } from "react";
 import { useGame } from "../context/GameContext.jsx";
 
 function PlayerHud({ player, onPassTurn, onLifeChange }) {
-  const { playerName } = useGame();
+  const {
+    playerName,
+    commanderCard: commanderFromContext,
+    castCommander,
+  } = useGame();
+
   const isSelf = player?.name === playerName;
 
   const life = player?.life ?? 40;
   const hand = player?.hand || [];
 
-  // por enquanto só contadores visuais
+  // commander pode vir do player (socket) ou do contexto local
+  const commanderCard = player?.commanderCard || commanderFromContext || null;
+  const commanderCastCount = player?.commanderCastCount || 0;
+  const commanderTax = commanderCastCount * 2; // +2 genérico por cast
+
   const graveyard = player?.graveyard || [];
   const battlefield = player?.battlefield || [];
   const exile = player?.exile || [];
 
-  // carta atualmente em foco (para o zoom)
   const [hoveredCard, setHoveredCard] = useState(null);
 
   return (
     <div className="player-hud">
-      {/* ===== TOPO: VIDA | NICK | PASSAR TURNO ===== */}
+      {/* ===== TOPO: VIDA | JOGADOR | PASSAR TURNO ===== */}
       <div className="hud-topbar">
         <div className="hud-life-pill">
           <button
@@ -58,23 +66,69 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
 
       {/* ===== BOARD + MÃO ===== */}
       <div className="hud-board-layout">
-        {/* QUADRO PRINCIPAL */}
+        {/* ========== ZONA PRINCIPAL DO BOARD ========== */}
         <div className="board-main">
-          {/* Linha de cima: Commander à esquerda / Cemitério à direita */}
+          {/* LINHA SUPERIOR: COMMANDER + CEMITÉRIO */}
           <div className="board-top-row">
             <div className="board-left-column">
               <div className="board-rect board-commander">
-                <div className="board-rect-title">Commander</div>
-                <p className="board-helper">
-                  Em breve puxaremos o commander direto do deck salvo.
-                </p>
+                <div className="board-rect-title">COMMANDER</div>
+
+                {commanderCard ? (
+                  <>
+                    <img
+                      src={
+                        commanderCard.image_uris?.normal ||
+                        commanderCard.image_uris?.large ||
+                        commanderCard.image_uris?.small ||
+                        ""
+                      }
+                      alt={commanderCard.name}
+                      style={{
+                        width: "160px",
+                        borderRadius: "10px",
+                        marginTop: "0.5rem",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.6)",
+                      }}
+                    />
+
+                    <div
+                      style={{
+                        marginTop: "0.4rem",
+                        fontSize: "0.8rem",
+                        opacity: 0.85,
+                      }}
+                    >
+                      Já foi conjurado:{" "}
+                      <strong>{commanderCastCount}</strong>{" "}
+                      vez{commanderCastCount === 1 ? "" : "es"}.
+                      <br />
+                      Taxa atual:{" "}
+                      <strong>+{commanderTax}</strong> mana genérica.
+                    </div>
+
+                    {isSelf && (
+                      <button
+                        type="button"
+                        style={{ marginTop: "0.4rem" }}
+                        onClick={() => castCommander && castCommander()}
+                      >
+                        Baixar comandante para o campo
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <p className="board-helper">
+                    Seu comandante aparecerá aqui quando carregar o deck.
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="board-center-spacer" />
 
             <div className="board-rect board-cemetery">
-              <div className="board-rect-title">Cemitério</div>
+              <div className="board-rect-title">CEMITÉRIO</div>
               <p className="board-helper">
                 {graveyard.length} carta
                 {graveyard.length === 1 ? "" : "s"}.
@@ -82,10 +136,10 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
             </div>
           </div>
 
-          {/* Linha do meio: PERMANENTES 1 e 2 */}
+          {/* LINHA DO MEIO */}
           <div className="board-row">
             <div className="board-rect board-zone">
-              <div className="board-rect-title">Permanentes 1 - Criaturas</div>
+              <div className="board-rect-title">PERMANENTES 1 - CRIATURAS</div>
               <p className="board-helper">
                 Em breve: criaturas, artefatos de criatura, etc. (
                 {battlefield.length} permanentes no campo).
@@ -93,18 +147,20 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
             </div>
 
             <div className="board-rect board-zone">
-              <div className="board-rect-title">Permanentes 2 - Encantamentos</div>
+              <div className="board-rect-title">
+                PERMANENTES 2 - ENCANTAMENTOS
+              </div>
               <p className="board-helper">
-                Em breve: encantamentos, planeswalkers, etc. ({exile.length} cartas
-                exiladas).
+                Em breve: encantamentos, planeswalkers, etc. ({exile.length}{" "}
+                cartas exiladas).
               </p>
             </div>
           </div>
 
-          {/* Linha de baixo: LANDS */}
+          {/* LINHA DE BAIXO: LANDS */}
           <div className="board-row lands-row">
             <div className="board-rect board-zone board-lands">
-              <div className="board-rect-title">Lands</div>
+              <div className="board-rect-title">LANDS</div>
               <p className="board-helper">
                 Em breve: terrenos virados / desvirados.
               </p>
@@ -112,7 +168,7 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
           </div>
         </div>
 
-        {/* FAIXA DA MÃO */}
+        {/* ========== FAIXA DA MÃO ========== */}
         <div className="board-hand">
           {hand.length === 0 ? (
             <p className="hud-hand-empty">

@@ -1,6 +1,6 @@
 // src/components/LifeCounter.jsx
 import React from "react";
-import { useGame } from "../contexts/GameContext";
+import { useGame } from "../context/GameContext.jsx";
 
 export function LifeCounter() {
   const { players, playerName, updatePlayerLife } = useGame();

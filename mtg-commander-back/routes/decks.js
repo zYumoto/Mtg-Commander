@@ -59,6 +59,7 @@ router.get("/:id/resolved", async (req, res, next) => {
 
     const resolvedCards = [];
 
+    // resolve as 99 cartas da lista
     for (const card of deck.cards || []) {
       try {
         const response = await axios.get(
@@ -79,11 +80,31 @@ router.get("/:id/resolved", async (req, res, next) => {
           set: c.set,
         });
       } catch (err) {
-        resolvedCards.push({
-          name: card.name,
-          quantity: card.quantity || 1,
-          error: true,
-        });
+        console.error("Erro ao resolver carta do deck:", card.name, err.message);
+      }
+    }
+
+    // resolve o comandante separado
+    let commanderCard = null;
+    if (deck.commander) {
+      try {
+        const response = await axios.get(
+          "https://api.scryfall.com/cards/named",
+          { params: { fuzzy: deck.commander } }
+        );
+
+        const c = response.data;
+        commanderCard = {
+          name: c.name,
+          mana_cost: c.mana_cost,
+          type_line: c.type_line,
+          oracle_text: c.oracle_text,
+          image_uris: c.image_uris || c.card_faces?.[0]?.image_uris || null,
+          set_name: c.set_name,
+          set: c.set,
+        };
+      } catch (err) {
+        console.error("Erro ao resolver comandante:", deck.commander, err.message);
       }
     }
 
@@ -91,12 +112,14 @@ router.get("/:id/resolved", async (req, res, next) => {
       id: deck._id,
       name: deck.name,
       commander: deck.commander,
+      commanderCard,
       cards: resolvedCards,
     });
   } catch (err) {
     next(err);
   }
 });
+
 
 // ------------------------------
 // 2) DUPLICAR DECK

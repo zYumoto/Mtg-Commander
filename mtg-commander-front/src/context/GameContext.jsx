@@ -1,21 +1,8 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+// src/context/GameContext.jsx
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { socket } from "../socket";
 
 const GameContext = createContext(null);
-
-function shuffleArray(list) {
-  const arr = [...list];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
 
 export function GameProvider({ children }) {
   const [playerName, setPlayerName] = useState("");
@@ -24,18 +11,34 @@ export function GameProvider({ children }) {
   const [messages, setMessages] = useState([]);
   const [connected, setConnected] = useState(false);
 
-  // 🔹 deck LOCAL do jogador (biblioteca embaralhada)
-  const [localLibrary, setLocalLibrary] = useState([]);
+  // deck local (somente cartas que ainda estão no deck)
+  const [library, setLibrary] = useState([]);
+
+  // comandante local (para o HUD)
+  const [commanderCard, setCommanderCardState] = useState(null);
+
+  // ===== commander: salva local + avisa servidor =====
+  function setCommanderCard(card) {
+    setCommanderCardState(card); // HUD local
+
+    if (!roomCode || !playerName || !card) return;
+
+    socket.emit("set-commander-card", {
+      roomCode,
+      playerName,
+      card,
+    });
+  }
 
   useEffect(() => {
     function onConnect() {
       setConnected(true);
-      console.log("✅ Conectado ao servidor Socket.IO");
+      console.log("Conectado ao servidor Socket.IO");
     }
 
     function onDisconnect() {
       setConnected(false);
-      console.log("❌ Desconectado do servidor Socket.IO");
+      console.log("Desconectado do servidor Socket.IO");
     }
 
     function onRoomState(state) {
@@ -62,16 +65,12 @@ export function GameProvider({ children }) {
     }
   }
 
-  // ======================
-  // ENTRAR NA SALA
-  // ======================
+  // Entrar na sala
   function joinRoom({ name, room }) {
     if (!name || !room) return;
     connectSocketIfNeeded();
-
     setPlayerName(name);
     setRoomCode(room.toUpperCase());
-    setLocalLibrary([]); // limpa deck local ao entrar em nova sala
 
     socket.emit("join-room", {
       roomCode: room,
@@ -79,28 +78,18 @@ export function GameProvider({ children }) {
     });
   }
 
-  // ======================
-  // VIDA
-  // ======================
-  function updatePlayerLife(target, delta) {
-    if (!roomCode || !target) return;
-
-    console.log("🎯 updatePlayerLife (front):", {
-      roomCode,
-      target,
-      delta,
-    });
+  // Atualizar vida via backend
+  function updatePlayerLife(name, delta) {
+    if (!roomCode || !name) return;
 
     socket.emit("update-life", {
       roomCode,
-      playerName: target,
+      playerName: name,
       delta,
     });
   }
 
-  // ======================
-  // CHAT
-  // ======================
+  // Enviar mensagem de chat
   function sendMessage(text) {
     if (!roomCode || !playerName || !text.trim()) return;
 
@@ -111,17 +100,9 @@ export function GameProvider({ children }) {
     });
   }
 
-  // ======================
-  // ADICIONAR CARTA NA MÃO (backend faz push na mão)
-  // ======================
+  // Adicionar carta na mão via backend
   function addCardToHand(card) {
     if (!roomCode || !playerName || !card) return;
-
-    console.log("🃏 add-card-to-hand (front):", {
-      roomCode,
-      playerName,
-      cardName: card.name,
-    });
 
     socket.emit("add-card-to-hand", {
       roomCode,
@@ -130,71 +111,98 @@ export function GameProvider({ children }) {
     });
   }
 
-  // ======================
-  // DECK LOCAL (usar deck salvo + shuffle + draw)
-  // ======================
+  // =============== DECK LOCAL (library) ===============
 
-  /**
-   * Recebe as cartas "resolvidas" da rota /decks/:id/resolved
-   * (cada item tem { name, quantity, mana_cost, type_line, oracle_text, image_uris, set_name, set })
-   * Expande pela quantity, embaralha e guarda localmente.
-   */
+  // Recebe as cartas resolvidas (com quantity) e expande o deck
   function setDeckFromResolved(resolvedCards) {
-    if (!Array.isArray(resolvedCards) || resolvedCards.length === 0) return;
+    if (!resolvedCards || resolvedCards.length === 0) {
+      setLibrary([]);
+      return;
+    }
 
     const expanded = [];
 
     resolvedCards.forEach((card) => {
-      const qty = card.quantity || 1;
+      const qty = Number(card.quantity) || 1;
       for (let i = 0; i < qty; i++) {
         expanded.push({
-          name: card.name,
-          mana_cost: card.mana_cost,
-          type_line: card.type_line,
-          oracle_text: card.oracle_text,
-          image_uris: card.image_uris || null,
-          set_name: card.set_name,
-          set: card.set,
+          ...card,
+          instanceId: `${card.name}-${Date.now()}-${Math.random()}-${i}`,
         });
       }
     });
 
-    const shuffled = shuffleArray(expanded);
-    setLocalLibrary(shuffled);
-
-    console.log("🔀 Deck carregado e embaralhado:", {
-      total: shuffled.length,
-    });
-  }
-
-  /**
-   * Comprar N cartas do topo do deck local
-   * e enviá-las para a mão via socket (add-card-to-hand).
-   */
-  function drawCards(amount = 1) {
-    if (!roomCode || !playerName) return;
-    if (localLibrary.length === 0) {
-      console.warn("📭 Sem cartas no deck para comprar.");
-      return;
+    // embaralha o deck (Fisher–Yates)
+    for (let i = expanded.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [expanded[i], expanded[j]] = [expanded[j], expanded[i]];
     }
 
-    const n = Math.max(1, Number(amount) || 1);
-    const available = localLibrary.length;
-    const toDraw = Math.min(n, available);
+    setLibrary(expanded);
+  }
 
-    const drawn = localLibrary.slice(0, toDraw);
-    const remaining = localLibrary.slice(toDraw);
+  // Comprar N cartas → só emite para o servidor
+  function drawCards(count) {
+    if (!count || count <= 0) return;
 
-    setLocalLibrary(remaining);
+    setLibrary((prev) => {
+      if (!prev || prev.length === 0) return prev;
 
-    drawn.forEach((card) => addCardToHand(card));
+      const n = Math.min(count, prev.length);
+      const drawn = prev.slice(0, n);
 
-    console.log("📥 Draw:", {
-      requested: n,
-      drawn: toDraw,
-      remaining: remaining.length,
+      drawn.forEach((card) => {
+        addCardToHand(card); // servidor cuida da mão
+      });
+
+      return prev.slice(n);
     });
   }
+
+  // Embaralhar somente o que restou no deck
+  function shuffleLibrary() {
+    setLibrary((prev) => {
+      const arr = [...prev];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    });
+  }
+
+  // Tutor: tira 1 carta do deck, manda pra mão e embaralha o resto
+  function tutorFromLibrary(instanceId) {
+    if (!instanceId) return;
+
+    setLibrary((prev) => {
+      const idx = prev.findIndex((c) => c.instanceId === instanceId);
+      if (idx === -1) return prev;
+
+      const card = prev[idx];
+      const newLib = [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+
+      addCardToHand(card);
+
+      for (let i = newLib.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newLib[i], newLib[j]] = [newLib[j], newLib[i]];
+      }
+
+      return newLib;
+    });
+  }
+
+  function castCommander() {
+    if (!roomCode || !playerName) return;
+
+    socket.emit("cast-commander", {
+      roomCode,
+      playerName,
+    });
+  }
+
+  const librarySize = library.length;
 
   const value = {
     playerName,
@@ -208,11 +216,15 @@ export function GameProvider({ children }) {
     updatePlayerLife,
     sendMessage,
     addCardToHand,
-
-    // Deck local (apenas do jogador atual)
+    library,
+    librarySize,
     setDeckFromResolved,
     drawCards,
-    librarySize: localLibrary.length,
+    shuffleLibrary,
+    tutorFromLibrary,
+    setCommanderCard,
+    castCommander,
+    commanderCard,
   };
 
   return (

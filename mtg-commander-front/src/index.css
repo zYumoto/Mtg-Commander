@@ -982,3 +982,79 @@ button:hover {
     width: 200px;
   }
 }
+.deck-commander-box {
+  margin-top: 0.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid #26263f;
+  padding: 0.5rem;
+  background: #050515;
+  text-align: center;
+}
+
+.deck-commander-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+  margin-bottom: 0.4rem;
+}
+
+.deck-commander-image {
+  width: 140px;
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+}
+
+/* painel de visualização do deck (tutor) */
+.deck-library-view {
+  margin-top: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid #26263f;
+  background: #050515;
+  padding: 0.5rem 0.6rem 0.7rem;
+}
+
+.deck-library-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.deck-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 0.4rem;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.deck-library-card {
+  background: #0b0b1a;
+  border-radius: 0.5rem;
+  border: 1px solid #1f2937;
+  padding: 0.25rem;
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.75rem;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.deck-library-card img {
+  width: 100%;
+  border-radius: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+
+.deck-library-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15,23,42,0.8);
+}
+
+.deck-library-card-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
