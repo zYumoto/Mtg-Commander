@@ -16,9 +16,9 @@ function DeckPanel() {
     shuffleLibrary,
     tutorFromLibrary,
     setCommanderCard,
-    // 🔹 novas funções que você vai criar no GameContext
     returnHandToLibrary,
     mulligan,
+    sendMessage, // 👈 vamos usar pra logar as ações no chat
   } = useGame();
   const { token } = useAuth();
 
@@ -32,7 +32,7 @@ function DeckPanel() {
   // pegar o player local na lista da sala
   const me = players.find((p) => p.name === playerName);
   const commanderCard = me?.commanderCard || null;
-  const handSize = me?.hand?.length || 0; // 👈 qtde de cartas na mão
+  const handSize = me?.hand?.length || 0;
 
   // carregar lista de decks do usuário
   useEffect(() => {
@@ -89,6 +89,11 @@ function DeckPanel() {
       if (data.commanderCard) {
         setCommanderCard(data.commanderCard); // manda comandante para a sala
       }
+
+      // 🔹 mensagem no chat
+      const deck = decks.find((d) => d._id === selectedDeckId);
+      const deckName = deck?.name || "(sem nome)";
+      sendMessage?.(`${playerName} carregou o deck "${deckName}" e embaralhou.`);
     } catch (err) {
       console.error("Erro ao carregar deck resolvido:", err);
       setError(err.message);
@@ -99,35 +104,48 @@ function DeckPanel() {
 
   function handleDrawOne() {
     drawCards(1);
+    sendMessage?.(`${playerName} comprou 1 carta.`);
   }
 
   function handleDrawSeven() {
     drawCards(7);
+    sendMessage?.(`${playerName} comprou 7 cartas (mão inicial).`);
   }
 
   function handleShuffleRemaining() {
     shuffleLibrary();
+    sendMessage?.(`${playerName} embaralhou o restante do deck.`);
   }
 
   function handleToggleLibraryView() {
-    setShowLibraryView((prev) => !prev);
+    setShowLibraryView((prev) => {
+      const nowOpen = !prev;
+      if (nowOpen) {
+        sendMessage?.(`${playerName} está visualizando as cartas restantes do deck.`);
+      } else {
+        sendMessage?.(`${playerName} fechou a visualização do deck.`);
+      }
+      return nowOpen;
+    });
   }
 
   function handleTutorClick(card) {
     if (!card?.instanceId) return;
     tutorFromLibrary(card.instanceId);
     setShowLibraryView(false);
+    sendMessage?.(`${playerName} tutorou a carta "${card.name}".`);
   }
 
-  // 🔹 NOVAS AÇÕES
   function handleReturnHand() {
     if (!returnHandToLibrary) return;
     returnHandToLibrary();
+    sendMessage?.(`${playerName} devolveu a mão para o deck.`);
   }
 
   function handleMulligan() {
     if (!mulligan) return;
     mulligan();
+    sendMessage?.(`${playerName} fez mulligan (nova mão).`);
   }
 
   return (
@@ -163,7 +181,7 @@ function DeckPanel() {
             </label>
           </div>
 
-          {/* BOTÕES – estilizados */}
+          {/* BOTÕES */}
           <div className="deck-panel-row deck-panel-row-buttons deck-panel-row-full">
             <button
               type="button"
@@ -268,7 +286,12 @@ function DeckPanel() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setShowLibraryView(false)}
+                  onClick={() => {
+                    setShowLibraryView(false);
+                    sendMessage?.(
+                      `${playerName} fechou a visualização do deck.`
+                    );
+                  }}
                   className="deck-btn deck-btn-outline deck-btn-sm"
                 >
                   Fechar

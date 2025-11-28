@@ -309,26 +309,124 @@ io.on('connection', (socket) => {
     io.to(code).emit('room-state', getRoomState(code));
     await syncRoomToDb(code);
   });
+  // ======================
+  // Tap / Untap de carta
+  // ======================
+  socket.on("toggle-tap", async ({ roomCode, playerName, cardInstanceId, zone }) => {
+    const code = roomCode?.toUpperCase();
+    const room = rooms[code];
+    if (!room) return;
 
-  socket.on("clear-hand", ({ roomCode, playerName }) => {
-  const code = roomCode.toUpperCase();
-  const room = rooms[code];
-  if (!room) return;
+    if (!cardInstanceId || !zone) return;
 
-  const player = Object.values(room.players).find(
-    (p) => p.name === playerName
-  );
-  if (!player) return;
+    const validZones = ["battlefield", "hand", "graveyard", "exile"];
+    if (!validZones.includes(zone)) {
+      console.log("⚠️ Zona inválida para toggle-tap:", zone);
+      return;
+    }
 
-  player.hand = [];
+    const playerEntry = Object.entries(room.players).find(
+      ([, p]) => p.name === playerName
+    );
+    if (!playerEntry) return;
 
-  // aqui usa o mesmo evento que você já usa pro front atualizar
-  io.to(code).emit("room-state", {
-    roomCode: code,
-    players: Object.values(room.players),
-    messages: room.messages || [],
+    const [socketId, player] = playerEntry;
+
+    const zoneArr = Array.isArray(player[zone]) ? [...player[zone]] : [];
+    const idx = zoneArr.findIndex(
+      (c) => c.instanceId && c.instanceId === cardInstanceId
+    );
+    if (idx === -1) {
+      console.log("⚠️ Carta para tap/untap não encontrada:", cardInstanceId);
+      return;
+    }
+
+    const card = { ...zoneArr[idx] };
+    card.tapped = !card.tapped; // alterna true/false
+
+    zoneArr[idx] = card;
+
+    room.players[socketId] = {
+      ...player,
+      [zone]: zoneArr,
+    };
+
+    io.to(code).emit("room-state", getRoomState(code));
+    await syncRoomToDb(code);
   });
-});
+
+  // ======================
+  // Mover carta entre zonas
+  // ======================
+  socket.on('move-card', async ({ roomCode, playerName, cardInstanceId, fromZone, toZone }) => {
+    console.log('BACKEND move-card:', roomCode, playerName, cardInstanceId, fromZone, '->', toZone);
+
+    const code = roomCode?.toUpperCase();
+    const room = rooms[code];
+    if (!room) return;
+
+    if (!cardInstanceId || !fromZone || !toZone || fromZone === toZone) return;
+
+    const validZones = ['hand', 'battlefield', 'graveyard', 'exile'];
+    if (!validZones.includes(fromZone) || !validZones.includes(toZone)) {
+      console.log('⚠️ Zona inválida:', fromZone, toZone);
+      return;
+    }
+
+    const playerEntry = Object.entries(room.players).find(
+      ([, p]) => p.name === playerName
+    );
+    if (!playerEntry) return;
+
+    const [socketId, player] = playerEntry;
+
+    const fromArray = Array.isArray(player[fromZone]) ? [...player[fromZone]] : [];
+    const toArray = Array.isArray(player[toZone]) ? [...player[toZone]] : [];
+
+    const cardIndex = fromArray.findIndex(
+      (c) => c.instanceId && c.instanceId === cardInstanceId
+    );
+
+    if (cardIndex === -1) {
+      console.log('⚠️ Carta não encontrada na zona de origem:', fromZone, cardInstanceId);
+      return;
+    }
+
+    const [card] = fromArray.splice(cardIndex, 1);
+    toArray.push(card);
+
+    room.players[socketId] = {
+      ...player,
+      [fromZone]: fromArray,
+      [toZone]: toArray,
+    };
+
+    io.to(code).emit('room-state', getRoomState(code));
+    await syncRoomToDb(code);
+  });
+
+
+    socket.on("clear-hand", async ({ roomCode, playerName }) => {
+    const code = roomCode?.toUpperCase();
+    const room = rooms[code];
+    if (!room) return;
+
+    const playerEntry = Object.entries(room.players).find(
+      ([, p]) => p.name === playerName
+    );
+    if (!playerEntry) return;
+
+    const [socketId, player] = playerEntry;
+
+    room.players[socketId] = {
+      ...player,
+      hand: [],
+    };
+
+    io.to(code).emit("room-state", getRoomState(code));
+    await syncRoomToDb(code);
+  });
+
 
 
   // ===== Definir comandante (APENAS UM LISTENER) =====

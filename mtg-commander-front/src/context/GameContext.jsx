@@ -114,6 +114,34 @@ export function GameProvider({ children }) {
     });
   }
 
+    // Mover carta entre zonas (hand, permanents1, permanents2, lands, graveyard)
+  function moveCard({ cardInstanceId, fromZone, toZone }) {
+    if (!roomCode || !playerName || !cardInstanceId || !fromZone || !toZone) return;
+    if (fromZone === toZone) return;
+
+    socket.emit('move-card', {
+      roomCode,
+      playerName,
+      cardInstanceId,
+      fromZone,
+      toZone,
+    });
+  }
+
+    // Tap / Untap de uma carta em uma zona (ex: battlefield)
+  function toggleTap(cardInstanceId, zone) {
+    if (!roomCode || !playerName || !cardInstanceId || !zone) return;
+
+    socket.emit("toggle-tap", {
+      roomCode,
+      playerName,
+      cardInstanceId,
+      zone,
+    });
+  }
+
+
+
   // =======================
   //  LÓGICA DO DECK LOCAL
   // =======================
@@ -296,9 +324,11 @@ export function GameProvider({ children }) {
     setCommanderCard,
     castCommander,
     commanderCard,
-    // 🔹 exportando pro DeckPanel
     returnHandToLibrary,
     mulligan,
+    moveCard,
+    toggleTap,
+
   };
 
   return (

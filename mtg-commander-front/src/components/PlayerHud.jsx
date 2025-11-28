@@ -1,3 +1,4 @@
+// src/components/PlayerHud.jsx
 import React, { useState } from "react";
 import { useGame } from "../context/GameContext.jsx";
 
@@ -6,6 +7,8 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
     playerName,
     commanderCard: commanderFromContext,
     castCommander,
+    moveCard,
+    toggleTap,
   } = useGame();
 
   const isSelf = player?.name === playerName;
@@ -23,6 +26,109 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
   const exile = player?.exile || [];
 
   const [hoveredCard, setHoveredCard] = useState(null);
+
+  // ===== DRAG & DROP =====
+  function onDragStartCard(e, card, fromZone) {
+    if (!card?.instanceId) return;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData(
+      "application/json",
+      JSON.stringify({
+        instanceId: card.instanceId,
+        fromZone,
+      })
+    );
+  }
+
+  function onDropCard(e, toZone) {
+    e.preventDefault();
+    const raw = e.dataTransfer.getData("application/json");
+    if (!raw) return;
+
+    try {
+      const { instanceId, fromZone } = JSON.parse(raw);
+      if (!instanceId || !fromZone) return;
+      if (fromZone === toZone) return;
+
+      moveCard?.({
+        cardInstanceId: instanceId,
+        fromZone,
+        toZone,
+      });
+    } catch (err) {
+      console.error("Erro no drop:", err);
+    }
+  }
+
+  function allowDrop(e) {
+    e.preventDefault();
+  }
+
+  // ===== TAP / UNTAP =====
+  function handleToggleTap(zoneKey, card) {
+    if (!card?.instanceId) return;
+    // só faz sentido tap/untap em permanentes (por enquanto, battlefield)
+    if (zoneKey !== "battlefield") return;
+    toggleTap?.(card.instanceId, zoneKey);
+  }
+
+  // ===== RENDER DAS ZONAS (3 POR LINHA) =====
+  function renderZoneCards(cards, zoneKey) {
+    if (!cards || cards.length === 0) {
+      return (
+        <p className="board-helper">
+          Nenhuma carta aqui ainda.
+        </p>
+      );
+    }
+
+    return (
+      <div
+        className="board-zone-cards"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gap: "4px",
+        }}
+      >
+        {cards.map((card) => {
+          const isTapped = !!card.tapped;
+
+          return (
+            <div
+              key={card.instanceId}
+              className={`board-zone-card ${isTapped ? "card-tapped" : ""}`}
+              style={{
+                transform: isTapped ? "rotate(90deg)" : "none",
+                transformOrigin: "center center",
+                transition: "transform 0.15s ease-out",
+                cursor: zoneKey === "battlefield" ? "pointer" : "grab",
+              }}
+              draggable
+              onDragStart={(e) => onDragStartCard(e, card, zoneKey)}
+              onClick={() => handleToggleTap(zoneKey, card)}
+              onMouseEnter={() => setHoveredCard(card)}
+              onMouseLeave={() => setHoveredCard(null)}
+              title={card.name}
+            >
+              <img
+                src={
+                  card.image_uris?.small ||
+                  card.image_uris?.normal ||
+                  ""
+                }
+                alt={card.name}
+                style={{
+                  width: "100%",
+                  borderRadius: "6px",
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="player-hud">
@@ -127,49 +233,74 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
 
             <div className="board-center-spacer" />
 
-            <div className="board-rect board-cemetery">
+            <div
+              className="board-rect board-cemetery"
+              onDragOver={allowDrop}
+              onDrop={(e) => onDropCard(e, "graveyard")}
+            >
               <div className="board-rect-title">CEMITÉRIO</div>
               <p className="board-helper">
                 {graveyard.length} carta
                 {graveyard.length === 1 ? "" : "s"}.
               </p>
+              {renderZoneCards(graveyard, "graveyard")}
             </div>
           </div>
 
           {/* LINHA DO MEIO */}
           <div className="board-row">
-            <div className="board-rect board-zone">
+            <div
+              className="board-rect board-zone"
+              onDragOver={allowDrop}
+              onDrop={(e) => onDropCard(e, "battlefield")}
+            >
               <div className="board-rect-title">PERMANENTES 1 - CRIATURAS</div>
               <p className="board-helper">
-                Em breve: criaturas, artefatos de criatura, etc. (
-                {battlefield.length} permanentes no campo).
+                {battlefield.length} permanente
+                {battlefield.length === 1 ? "" : "s"} no campo.
               </p>
+              {renderZoneCards(battlefield, "battlefield")}
             </div>
 
-            <div className="board-rect board-zone">
+            <div
+              className="board-rect board-zone"
+              onDragOver={allowDrop}
+              onDrop={(e) => onDropCard(e, "exile")}
+            >
               <div className="board-rect-title">
-                PERMANENTES 2 - ENCANTAMENTOS
+                PERMANENTES 2 - ENCANTAMENTOS / EXÍLIO
               </div>
               <p className="board-helper">
-                Em breve: encantamentos, planeswalkers, etc. ({exile.length}{" "}
-                cartas exiladas).
+                {exile.length} carta
+                {exile.length === 1 ? "" : "s"} exilada
+                {exile.length === 1 ? "" : "s"}.
               </p>
+              {renderZoneCards(exile, "exile")}
             </div>
           </div>
 
-          {/* LINHA DE BAIXO: LANDS */}
+          {/* LINHA DE BAIXO: LANDS (usa battlefield por enquanto) */}
           <div className="board-row lands-row">
-            <div className="board-rect board-zone board-lands">
+            <div
+              className="board-rect board-zone board-lands"
+              onDragOver={allowDrop}
+              onDrop={(e) => onDropCard(e, "battlefield")}
+            >
               <div className="board-rect-title">LANDS</div>
               <p className="board-helper">
-                Em breve: terrenos virados / desvirados.
+                Arraste terrenos da mão para cá. (Usa a zona battlefield no
+                backend.)
               </p>
             </div>
           </div>
         </div>
 
         {/* ========== FAIXA DA MÃO ========== */}
-        <div className="board-hand">
+        <div
+          className="board-hand"
+          onDragOver={allowDrop}
+          onDrop={(e) => onDropCard(e, "hand")}
+        >
           {hand.length === 0 ? (
             <p className="hud-hand-empty">
               Nenhuma carta na mão. Use o painel de deck para comprar cartas.
@@ -188,6 +319,8 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
                     }deg)`,
                   }}
                   title={card.name}
+                  draggable
+                  onDragStart={(e) => onDragStartCard(e, card, "hand")}
                   onMouseEnter={() => setHoveredCard(card)}
                   onMouseLeave={() => setHoveredCard(null)}
                 >
