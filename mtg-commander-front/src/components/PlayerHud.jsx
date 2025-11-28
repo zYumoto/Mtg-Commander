@@ -9,6 +9,7 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
     castCommander,
     moveCard,
     toggleTap,
+    updateCardCounter,
   } = useGame();
 
   const isSelf = player?.name === playerName;
@@ -23,9 +24,11 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
 
   const graveyard = player?.graveyard || [];
   const battlefield = player?.battlefield || [];
+  const lands = player?.lands || [];
   const exile = player?.exile || [];
 
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [showGraveyardModal, setShowGraveyardModal] = useState(false);
 
   // ===== DRAG & DROP =====
   function onDragStartCard(e, card, fromZone) {
@@ -67,12 +70,13 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
   // ===== TAP / UNTAP =====
   function handleToggleTap(zoneKey, card) {
     if (!card?.instanceId) return;
-    // só faz sentido tap/untap em permanentes (por enquanto, battlefield)
-    if (zoneKey !== "battlefield") return;
+    // tap/untap só no campo de permanentes por enquanto
+    if (zoneKey !== "battlefield" && zoneKey !== "lands") return;
     toggleTap?.(card.instanceId, zoneKey);
   }
 
   // ===== RENDER DAS ZONAS (3 POR LINHA) =====
+    // ===== RENDER DAS ZONAS =====
   function renderZoneCards(cards, zoneKey) {
     if (!cards || cards.length === 0) {
       return (
@@ -82,35 +86,109 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
       );
     }
 
-    return (
-      <div
-        className="board-zone-cards"
-        style={{
+    const isLands = zoneKey === "lands";
+
+    const containerStyle = isLands
+      ? {
+          display: "flex",
+          flexDirection: "row",
+          gap: "6px",
+          flexWrap: "nowrap",
+          overflowX: "auto",
+          paddingBottom: "4px",
+        }
+      : {
           display: "grid",
           gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
           gap: "4px",
-        }}
-      >
+        };
+
+    return (
+      <div className="board-zone-cards" style={containerStyle}>
         {cards.map((card) => {
-          const isTapped = !!card.tapped;
+          const isTapped =
+            !!card.tapped &&
+            (zoneKey === "battlefield" || zoneKey === "lands");
+          const counters = Number(card.counters || 0);
+
+          const canTap = zoneKey === "battlefield" || zoneKey === "lands";
+          const canHaveCounters = zoneKey === "battlefield";
 
           return (
             <div
               key={card.instanceId}
               className={`board-zone-card ${isTapped ? "card-tapped" : ""}`}
-              style={{
-                transform: isTapped ? "rotate(90deg)" : "none",
-                transformOrigin: "center center",
-                transition: "transform 0.15s ease-out",
-                cursor: zoneKey === "battlefield" ? "pointer" : "grab",
-              }}
               draggable
               onDragStart={(e) => onDragStartCard(e, card, zoneKey)}
               onClick={() => handleToggleTap(zoneKey, card)}
               onMouseEnter={() => setHoveredCard(card)}
               onMouseLeave={() => setHoveredCard(null)}
               title={card.name}
+              style={{
+                position: "relative",
+                transform: isTapped ? "rotate(90deg)" : "none",
+                transformOrigin: "center center",
+                transition: "transform 0.15s ease-out",
+                cursor: canTap ? "pointer" : "grab",
+              }}
             >
+              {/* Badge de contador (apenas battlefield) */}
+              {canHaveCounters && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "-6px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "2px",
+                    background: "rgba(0, 0, 0, 0.8)",
+                    borderRadius: "999px",
+                    padding: "2px 6px",
+                    fontSize: "0.7rem",
+                    zIndex: 2,
+                  }}
+                  onClick={(e) => e.stopPropagation()} // não dar tap quando clicar no badge
+                >
+                  <button
+                    type="button"
+                    style={{
+                      border: "none",
+                      background: "transparent",
+                      color: "#fff",
+                      cursor: "pointer",
+                      padding: 0,
+                      fontSize: "0.7rem",
+                    }}
+                    onClick={() =>
+                      updateCardCounter?.(card.instanceId, zoneKey, -1)
+                    }
+                  >
+                    −
+                  </button>
+                  <span style={{ color: "#fff", minWidth: "1.2rem", textAlign: "center" }}>
+                    {counters}
+                  </span>
+                  <button
+                    type="button"
+                    style={{
+                      border: "none",
+                      background: "transparent",
+                      color: "#fff",
+                      cursor: "pointer",
+                      padding: 0,
+                      fontSize: "0.7rem",
+                    }}
+                    onClick={() =>
+                      updateCardCounter?.(card.instanceId, zoneKey, +1)
+                    }
+                  >
+                    +
+                  </button>
+                </div>
+              )}
+
               <img
                 src={
                   card.image_uris?.small ||
@@ -119,7 +197,7 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
                 }
                 alt={card.name}
                 style={{
-                  width: "100%",
+                  width: isLands ? "80px" : "100%",
                   borderRadius: "6px",
                 }}
               />
@@ -129,6 +207,10 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
       </div>
     );
   }
+
+  // ===== GRAVEYARD: última carta no campo + modal completo =====
+  const lastGraveCard =
+    graveyard.length > 0 ? graveyard[graveyard.length - 1] : null;
 
   return (
     <div className="player-hud">
@@ -237,13 +319,37 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
               className="board-rect board-cemetery"
               onDragOver={allowDrop}
               onDrop={(e) => onDropCard(e, "graveyard")}
+              onClick={() => {
+                if (graveyard.length > 0) setShowGraveyardModal(true);
+              }}
+              style={{ cursor: graveyard.length > 0 ? "pointer" : "default" }}
             >
               <div className="board-rect-title">CEMITÉRIO</div>
               <p className="board-helper">
-                {graveyard.length} carta
-                {graveyard.length === 1 ? "" : "s"}.
+                {graveyard.length === 0
+                  ? "Nenhuma carta no cemitério."
+                  : `${graveyard.length} carta${
+                      graveyard.length === 1 ? "" : "s"
+                    } no cemitério. Clique para ver todas.`}
               </p>
-              {renderZoneCards(graveyard, "graveyard")}
+
+              {lastGraveCard && (
+                <div
+                  className="board-zone-card"
+                  onMouseEnter={() => setHoveredCard(lastGraveCard)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                >
+                  <img
+                    src={
+                      lastGraveCard.image_uris?.small ||
+                      lastGraveCard.image_uris?.normal ||
+                      ""
+                    }
+                    alt={lastGraveCard.name}
+                    style={{ width: "80px", borderRadius: "6px" }}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -279,18 +385,18 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
             </div>
           </div>
 
-          {/* LINHA DE BAIXO: LANDS (usa battlefield por enquanto) */}
+          {/* LINHA DE BAIXO: LANDS (zona própria) */}
           <div className="board-row lands-row">
             <div
               className="board-rect board-zone board-lands"
               onDragOver={allowDrop}
-              onDrop={(e) => onDropCard(e, "battlefield")}
+              onDrop={(e) => onDropCard(e, "lands")}
             >
               <div className="board-rect-title">LANDS</div>
               <p className="board-helper">
-                Arraste terrenos da mão para cá. (Usa a zona battlefield no
-                backend.)
+                Arraste terrenos da mão para cá.
               </p>
+              {renderZoneCards(lands, "lands")}
             </div>
           </div>
         </div>
@@ -338,6 +444,30 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
           )}
         </div>
       </div>
+
+      {/* ===== MODAL COMPLETO DO CEMITÉRIO ===== */}
+      {showGraveyardModal && (
+        <div className="graveyard-modal-backdrop">
+          <div className="graveyard-modal">
+            <div className="graveyard-modal-header">
+              <h3>Cemitério de {player?.name}</h3>
+              <button
+                type="button"
+                onClick={() => setShowGraveyardModal(false)}
+              >
+                Fechar
+              </button>
+            </div>
+            <p className="board-helper">
+              Todas as cartas no cemitério. Você ainda pode arrastar cartas
+              daqui para outras zonas.
+            </p>
+            <div className="graveyard-modal-grid">
+              {renderZoneCards(graveyard, "graveyard")}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ===== PREVIEW GRANDE DA CARTA ===== */}
       {hoveredCard && (

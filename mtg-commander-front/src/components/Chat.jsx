@@ -26,33 +26,40 @@ function Chat() {
         <h3>Chat da mesa</h3>
       </div>
 
-      <div className="chat-messages">
-        {messages.length === 0 && (
-          <p className="chat-empty">Nenhuma mensagem ainda. Diga um oi! 👋</p>
-        )}
+      <div
+  className="chat-messages"
+  style={{
+    maxHeight: "320px",     // altura máxima do chat
+    overflowY: "auto",      // ativa o scroll vertical
+  }}
+>
+  {messages.length === 0 && (
+    <p className="chat-empty">Nenhuma mensagem ainda. Diga um oi! 👋</p>
+  )}
 
-        {messages.map((msg) => {
-          const isMe = msg.from === playerName;
-          const fromLabel = isMe ? "Você" : msg.from || "Anônimo";
+  {messages.map((msg) => {
+    const isMe = msg.from === playerName;
+    const fromLabel = isMe ? "Você" : msg.from || "Anônimo";
 
-          return (
-            <div
-              key={msg.id}
-              className={`chat-row ${isMe ? "chat-row-me" : "chat-row-other"}`}
-            >
-              <div
-                className={`chat-bubble ${
-                  isMe ? "chat-bubble-me" : "chat-bubble-other"
-                }`}
-              >
-                <div className="chat-from">{fromLabel}</div>
-                <div className="chat-text">{msg.text}</div>
-              </div>
-            </div>
-          );
-        })}
-        <div ref={bottomRef} />
+    return (
+      <div
+        key={msg.id}
+        className={`chat-row ${isMe ? "chat-row-me" : "chat-row-other"}`}
+      >
+        <div
+          className={`chat-bubble ${
+            isMe ? "chat-bubble-me" : "chat-bubble-other"
+          }`}
+        >
+          <div className="chat-from">{fromLabel}</div>
+          <div className="chat-text">{msg.text}</div>
+        </div>
       </div>
+    );
+  })}
+  <div ref={bottomRef} />
+</div>
+
 
       <form className="chat-input-row" onSubmit={handleSubmit}>
         <input

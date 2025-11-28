@@ -140,7 +140,17 @@ export function GameProvider({ children }) {
     });
   }
 
+  function updateCardCounter(cardInstanceId, zone, delta) {
+    if (!roomCode || !playerName || !cardInstanceId || !zone) return;
 
+    socket.emit("update-card-counter", {
+      roomCode,
+      playerName,
+      cardInstanceId,
+      zone,
+      delta,
+    });
+  }
 
   // =======================
   //  LÓGICA DO DECK LOCAL
@@ -328,7 +338,7 @@ export function GameProvider({ children }) {
     mulligan,
     moveCard,
     toggleTap,
-
+    updateCardCounter,
   };
 
   return (

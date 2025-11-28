@@ -51,6 +51,7 @@ const PlayerSchema = new mongoose.Schema(
     commanderCard: mongoose.Schema.Types.Mixed,
     commanderCastCount: { type: Number, default: 0 },
     battlefield: [mongoose.Schema.Types.Mixed],
+    lands: [mongoose.Schema.Types.Mixed],
     graveyard: [mongoose.Schema.Types.Mixed],
     exile: [mongoose.Schema.Types.Mixed],
   },
@@ -121,6 +122,7 @@ async function syncRoomToDb(code) {
     commanderCard: p.commanderCard || null,
     commanderCastCount: p.commanderCastCount || 0,
     battlefield: p.battlefield || [],
+    lands: p.lands || [],
     graveyard: p.graveyard || [],
     exile: p.exile || [],
   }));
@@ -213,6 +215,7 @@ io.on('connection', (socket) => {
         hand: [],
         commanderCard: null,
         commanderCastCount: 0,
+        lands: [],
         battlefield: [],
         graveyard: [],
         exile: [],
@@ -319,7 +322,7 @@ io.on('connection', (socket) => {
 
     if (!cardInstanceId || !zone) return;
 
-    const validZones = ["battlefield", "hand", "graveyard", "exile"];
+  const validZones = ['hand', 'battlefield', 'lands', 'graveyard', 'exile'];
     if (!validZones.includes(zone)) {
       console.log("⚠️ Zona inválida para toggle-tap:", zone);
       return;
@@ -356,6 +359,51 @@ io.on('connection', (socket) => {
   });
 
   // ======================
+  // Atualizar contador da carta (ex: +1/+1, marcadores, etc.)
+  // ======================
+  socket.on("update-card-counter", async ({ roomCode, playerName, cardInstanceId, zone, delta }) => {
+    const code = roomCode?.toUpperCase();
+    const room = rooms[code];
+    if (!room) return;
+
+    if (!cardInstanceId || !zone) return;
+
+    // por enquanto vamos permitir só battlefield; se quiser, dá pra expandir
+    const validZones = ["battlefield"];
+    if (!validZones.includes(zone)) return;
+
+    const playerEntry = Object.entries(room.players).find(
+      ([, p]) => p.name === playerName
+    );
+    if (!playerEntry) return;
+
+    const [socketId, player] = playerEntry;
+
+    const zoneArr = Array.isArray(player[zone]) ? [...player[zone]] : [];
+    const idx = zoneArr.findIndex(
+      (c) => c.instanceId && c.instanceId === cardInstanceId
+    );
+    if (idx === -1) return;
+
+    const card = { ...zoneArr[idx] };
+    const current = Number(card.counters || 0);
+    const diff = Number(delta) || 0;
+    const nextValue = Math.max(0, current + diff); // não deixa negativo
+
+    card.counters = nextValue;
+    zoneArr[idx] = card;
+
+    room.players[socketId] = {
+      ...player,
+      [zone]: zoneArr,
+    };
+
+    io.to(code).emit("room-state", getRoomState(code));
+    await syncRoomToDb(code);
+  });
+
+
+  // ======================
   // Mover carta entre zonas
   // ======================
   socket.on('move-card', async ({ roomCode, playerName, cardInstanceId, fromZone, toZone }) => {
@@ -367,7 +415,7 @@ io.on('connection', (socket) => {
 
     if (!cardInstanceId || !fromZone || !toZone || fromZone === toZone) return;
 
-    const validZones = ['hand', 'battlefield', 'graveyard', 'exile'];
+    const validZones = ['hand', 'battlefield', 'lands','graveyard', 'exile'];
     if (!validZones.includes(fromZone) || !validZones.includes(toZone)) {
       console.log('⚠️ Zona inválida:', fromZone, toZone);
       return;
