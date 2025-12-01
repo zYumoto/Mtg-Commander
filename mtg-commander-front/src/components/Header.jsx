@@ -3,7 +3,7 @@ import { useGame } from "../context/GameContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
 function Header() {
-  const { playerName, roomCode } = useGame();
+  const { roomCode } = useGame();
   const { user, isAuthenticated, logout, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -12,49 +12,55 @@ function Header() {
     navigate("/login");
   }
 
+  const displayName =
+    user?.nickname || user?.fullName || user?.email || "Jogador";
+
+  const firstLetter = displayName.charAt(0).toUpperCase();
+
   return (
     <header className="header">
       <div className="header-left">
-        <Link to="/" className="logo">
-          MTG Commander Hub
+        <Link to="/lobby" className="logo-text">
+          Commander Online
         </Link>
+
+        {isAuthenticated && (
+          <nav className="nav-links">
+            <Link to="/lobby">Lobby</Link>
+            <Link to="/decks">Meus Decks</Link>
+          </nav>
+        )}
       </div>
 
-      <div
-        className="header-right"
-        style={{ display: "flex", gap: "1rem", alignItems: "center" }}
-      >
+      <div className="header-right">
         {roomCode && (
-          <span>
+          <span className="room-pill">
             Sala: <strong>{roomCode}</strong>
           </span>
         )}
 
-        {playerName && (
-          <span>
-            Jogador: <strong>{playerName}</strong>
-          </span>
+        {!loading && isAuthenticated && user && (
+          <>
+            <Link to="/profile" className="user-chip">
+              <div className="avatar-circle">
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={displayName} />
+                ) : (
+                  <span>{firstLetter}</span>
+                )}
+              </div>
+              <span className="user-name">{displayName}</span>
+            </Link>
+            <button type="button" className="btn-ghost" onClick={handleLogout}>
+              Sair
+            </button>
+          </>
         )}
 
-        {!loading && (
+        {!loading && !isAuthenticated && (
           <>
-            {isAuthenticated ? (
-              <>
-                {/* 👇 AQUI O LINK QUE FALTAVA */}
-                <Link to="/decks">Meus Decks</Link>
-
-                <span>
-                  Logado como: <strong>{user?.nickname}</strong>
-                </span>
-
-                <button onClick={handleLogout}>Sair</button>
-              </>
-            ) : (
-              <>
-                <Link to="/login">Login</Link>
-                <Link to="/register">Registrar</Link>
-              </>
-            )}
+            <Link to="/login">Login</Link>
+            <Link to="/register">Registrar</Link>
           </>
         )}
       </div>

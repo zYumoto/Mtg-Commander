@@ -2,10 +2,10 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext(null);
 
-const API_URL = "http://localhost:4000"; // backend
+const API_URL = "http://localhost:4000"; // URL do backend
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); // { _id, email, nickname }
+  const [user, setUser] = useState(null); // {_id, email, nickname, fullName, avatarUrl, bio}
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -16,21 +16,27 @@ export function AuthProvider({ children }) {
       setLoading(false);
       return;
     }
-
     setToken(saved);
     fetchMe(saved);
   }, []);
 
-  async function fetchMe(jwt) {
+  async function fetchMe(jwtToken = token) {
+    if (!jwtToken) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     try {
+      setLoading(true);
       const res = await fetch(`${API_URL}/auth/me`, {
         headers: {
-          Authorization: `Bearer ${jwt}`,
+          Authorization: `Bearer ${jwtToken}`,
         },
       });
 
       if (!res.ok) {
-        throw new Error("Token inválido");
+        throw new Error("Erro ao buscar usuário");
       }
 
       const data = await res.json();
@@ -58,10 +64,10 @@ export function AuthProvider({ children }) {
       throw new Error(data.error || "Erro ao fazer login");
     }
 
-    const jwt = data.token;
-    setToken(jwt);
-    localStorage.setItem("authToken", jwt);
-    await fetchMe(jwt);
+    const jwtToken = data.token;
+    setToken(jwtToken);
+    localStorage.setItem("authToken", jwtToken);
+    await fetchMe(jwtToken);
   }
 
   async function register(email, password, nickname) {
@@ -72,12 +78,15 @@ export function AuthProvider({ children }) {
     });
 
     const data = await res.json();
+
     if (!res.ok) {
       throw new Error(data.error || "Erro ao registrar");
     }
 
-    // depois de registrar, já faz login
-    await login(email, password);
+    const jwtToken = data.token;
+    setToken(jwtToken);
+    localStorage.setItem("authToken", jwtToken);
+    await fetchMe(jwtToken);
   }
 
   function logout() {
@@ -86,14 +95,65 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("authToken");
   }
 
+  // Atualiza info básicas do perfil
+  async function updateProfile(fields) {
+    if (!token) {
+      throw new Error("Usuário não autenticado");
+    }
+
+    const res = await fetch(`${API_URL}/auth/me`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(fields),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao atualizar perfil");
+    }
+
+    setUser(data);
+    return data;
+  }
+
+  // Trocar senha
+  async function changePassword(currentPassword, newPassword) {
+    if (!token) {
+      throw new Error("Usuário não autenticado");
+    }
+
+    const res = await fetch(`${API_URL}/auth/change-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Erro ao trocar senha");
+    }
+
+    return true;
+  }
+
   const value = {
     user,
     token,
     loading,
+    isAuthenticated: !!user,
     login,
     register,
     logout,
-    isAuthenticated: !!user,
+    updateProfile,
+    changePassword,
   };
 
   return (

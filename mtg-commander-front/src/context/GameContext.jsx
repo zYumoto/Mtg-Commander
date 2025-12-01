@@ -1,10 +1,13 @@
-// src/context/GameContext.jsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { socket } from "../socket";
+import { useAuth } from "./AuthContext.jsx";
 
 const GameContext = createContext(null);
 
 export function GameProvider({ children }) {
+  // 🔹 Pega o usuário logado
+  const { user } = useAuth();
+
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [players, setPlayers] = useState([]);
@@ -29,6 +32,15 @@ export function GameProvider({ children }) {
       card,
     });
   }
+
+  // 🔹 Aqui agora o `user` existe
+  useEffect(() => {
+    if (user?.nickname) {
+      setPlayerName(user.nickname);
+    } else if (user?.email) {
+      setPlayerName(user.email.split("@")[0]);
+    }
+  }, [user]);
 
   useEffect(() => {
     function onConnect() {

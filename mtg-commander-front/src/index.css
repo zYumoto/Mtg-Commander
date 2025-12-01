@@ -8,24 +8,50 @@
     sans-serif;
 }
 
+/* Fundo geral com vibe Magic, mas sóbrio */
 body {
-  background: #0b0b10;
-  color: #f5f5f5;
+  background: radial-gradient(circle at top, #0f172a 0, #020617 40%, #02010f 100%);
+  color: #f9fafb;
+  background-attachment: fixed;
 }
 
+/* Links padrão */
+a {
+  color: #facc15;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+a:hover {
+  color: #fde68a;
+}
+
+/* Botões padrão – “spell” dourado, mas sem exagero */
 button {
   cursor: pointer;
   border: none;
-  border-radius: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: #3c82ff;
-  color: #f5f5f5;
-  font-weight: 600;
+  border-radius: 0.75rem;
+  padding: 0.55rem 1.1rem;
+  background: linear-gradient(135deg, #f97316, #facc15);
+  color: #111827;
+  font-weight: 700;
   margin-top: 0.5rem;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.8rem;
 }
 
-button:hover {
-  opacity: 0.9;
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.8);
+  filter: brightness(1.05);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* ========== LAYOUT APP ========== */
@@ -36,28 +62,147 @@ button:hover {
   flex-direction: column;
 }
 
+/* Header mais clean, com leve gradient e detalhe dourado */
 .header {
-  background: #151525;
-  padding: 0.75rem 1.5rem;
+  background: linear-gradient(90deg, #111827, #1f2937, #111827);
+  padding: 0.8rem 1.9rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #2e2e4a;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.5);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
-.logo {
-  font-weight: 700;
-  text-decoration: none;
-  color: #f5f5f5;
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.header-right span {
-  margin-left: 1rem;
+/* logo / nome do app */
+.logo-text {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: #fef9c3;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* links do menu (Lobby, Meus Decks, etc.) */
+.nav-links {
+  display: flex;
+  gap: 0.75rem;
+  margin-left: 1.5rem;
+}
+
+.nav-links a {
   font-size: 0.9rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.5);
+  color: #e5e7eb;
+  opacity: 0.9;
+  transition: background 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
+}
+
+.nav-links a:hover {
+  background: rgba(37, 99, 235, 0.4);
+  transform: translateY(-1px);
+  opacity: 1;
+}
+
+/* pill com código da sala */
+.room-pill {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(248, 250, 252, 0.45);
+  color: #f9fafb;
+}
+
+/* chip do usuário (avatar + nome) */
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.7rem 0.25rem 0.3rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.8);
+  font-size: 0.9rem;
+  transition: background 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+}
+
+.user-chip:hover {
+  background: rgba(15, 23, 42, 1);
+  border-color: #facc15;
+  transform: translateY(-1px);
+}
+
+/* bolinha do avatar */
+.avatar-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top, #f97316, #facc15, #4b5563);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #020617;
+  font-weight: 800;
+  font-size: 0.9rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.user-name {
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* links Login / Registrar quando não autenticado (no header-right, fora do nav) */
+.header-right a {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  color: #fefce8;
+}
+
+.header-right a:hover {
+  opacity: 1;
+}
+
+/* botão Sair */
+.btn-ghost {
+  background: transparent;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.9);
+  color: #e5e7eb;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.85rem;
+  margin-top: 0;
+}
+
+.btn-ghost:hover {
+  background: #1f2937;
+  border-color: #facc15;
 }
 
 .app-main {
-   flex: 1;
+  flex: 1;
   padding: 1rem 1.5rem;
 }
 
@@ -71,6 +216,11 @@ button:hover {
 }
 
 .page-center h1,
+.profile-page h1 {
+  color: #fef9c3;
+  text-shadow: 0 0 18px rgba(250, 204, 21, 0.35);
+}
+
 .page-center h2 {
   margin-bottom: 0.75rem;
 }
@@ -80,14 +230,90 @@ button:hover {
   color: #c5c5d5;
 }
 
+/* cards de formulário com cara de “foil” */
 .form-card {
-  background: #181828;
+  background: radial-gradient(circle at top, #020617, #020617 30%, #02010f);
+  border-radius: 0.9rem;
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.8);
   padding: 1.5rem;
-  border-radius: 0.75rem;
   margin-bottom: 1.5rem;
   text-align: left;
-  border: 1px solid #26263f;
 }
+
+.form-card h3 {
+  margin-bottom: 0.75rem;
+}
+
+.form-card label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.form-card input,
+.form-card select,
+.form-card textarea {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: #020617;
+  border: 1px solid #1e293b;
+  color: #e5e7eb;
+}
+
+.form-card input:focus,
+.form-card select:focus,
+.form-card textarea:focus {
+  outline: none;
+  border-color: #facc15;
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.5);
+}
+
+.info {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: #c5c5d5;
+}
+
+/* Perfil */
+.profile-page {
+  max-width: 900px;
+  margin: 0 auto;
+  margin-top: 2.5rem;
+}
+
+.profile-page h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.profile-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.feedback-text {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #a5b4fc;
+}
+
+@media (min-width: 900px) {
+  .profile-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .profile-layout .form-card {
+    flex: 1;
+  }
+}
+
+/* Deck panel (builder) */
+
 .deck-panel-title {
   margin-bottom: 0.25rem;
   font-size: 0.95rem;
@@ -141,39 +367,19 @@ button:hover {
   opacity: 0.85;
 }
 
-.form-card h3 {
-  margin-bottom: 0.75rem;
-}
-
-.form-card label {
-  display: block;
-  margin-bottom: 0.75rem;
-  font-size: 0.9rem;
-}
-
-.form-card input,
-.form-card select {
-  width: 100%;
-  margin-top: 0.25rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  border: 1px solid #30304a;
-  background: #10101a;
-  color: #f5f5f5;
-}
-
-.info {
-  margin-top: 0.75rem;
-  font-size: 0.9rem;
-  color: #c5c5d5;
-}
-
 /* ========== ROOM LAYOUT ========== */
 
 .room {
-  max-width: 1400px;
-    max-width: 2000px; 
+  max-width: 2000px;
   margin: 0 auto;
+}
+
+.table-overview,
+.player-hud,
+.board-main,
+.board-hand {
+  border-color: rgba(148, 163, 184, 0.4);
+  background: radial-gradient(circle at top, #020617, #020617 40%, #02010f);
 }
 
 .room-header {
@@ -518,7 +724,6 @@ button:hover {
   gap: 1rem;
 }
 
-
 /* Top bar */
 
 .hud-topbar {
@@ -661,47 +866,6 @@ button:hover {
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.9);
 }
 
-/* ========== RESPONSIVO ========== */
-
-@media (max-width: 1100px) {
-  .table-middle-row {
-    grid-template-columns: 180px 1fr 180px;
-  }
-}
-
-@media (max-width: 900px) {
-  .app-main {
-    padding: 1rem;
-  }
-
-  .table-overview {
-    min-height: 260px;
-  }
-
-  .table-middle-row {
-    grid-template-columns: 1fr;
-    row-gap: 0.5rem;
-  }
-
-  .seat-vertical {
-    min-height: 120px;
-  }
-
-  .life-left,
-  .life-right {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-  }
-
-  .hud-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .room-content {
-    grid-template-columns: 1fr;
-  }
-}
 /* === HUD – ZONAS (Campo / Cemitério / Exílio) === */
 
 .hud-zones-header {
@@ -758,13 +922,6 @@ button:hover {
   opacity: 0.7;
 }
 
-/* responsivo das zonas */
-
-@media (max-width: 900px) {
-  .hud-zones-grid {
-    grid-template-columns: 1fr;
-  }
-}
 /* ===== HUD – LAYOUT DO BOARD (desenho) ===== */
 
 .hud-board-layout {
@@ -773,7 +930,6 @@ button:hover {
   flex-direction: column;
   gap: 0.7rem;
 }
-
 
 /* quadro grande do board */
 .board-main {
@@ -787,7 +943,6 @@ button:hover {
   flex-direction: column;
   gap: 0.6rem;
 }
-
 
 /* linha de cima: card list + commander / espaço / cemitério */
 .board-top-row {
@@ -895,7 +1050,7 @@ button:hover {
   min-height: 120px;
   display: flex;
   align-items: flex-end;
-  justify-content: center;   /* <<< CENTRALIZA o conteúdo */
+  justify-content: center;
   overflow-x: auto;
 }
 
@@ -903,8 +1058,7 @@ button:hover {
   display: flex;
   gap: 0.4rem;
   align-items: flex-end;
-  justify-content: center;   /* <<< leque saindo do centro */
-  /* tira qualquer width: 100% se tiver */
+  justify-content: center;
 }
 
 .board-hand-card {
@@ -938,16 +1092,6 @@ button:hover {
   opacity: 0.75;
 }
 
-/* responsivo */
-@media (max-width: 900px) {
-  .board-top-row {
-    grid-template-columns: 1fr;
-  }
-
-  .board-row {
-    grid-template-columns: 1fr;
-  }
-}
 /* ===== PREVIEW GRANDE DA CARTA (HOVER) ===== */
 
 .card-zoom-overlay {
@@ -962,7 +1106,7 @@ button:hover {
 }
 
 .card-zoom-overlay img {
-  width: 350px;          /* ajusta o tamanho que você achar melhor */
+  width: 350px;
   max-height: 80vh;
   border-radius: 0.75rem;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.85);
@@ -982,6 +1126,9 @@ button:hover {
     width: 200px;
   }
 }
+
+/* Comandante no painel de deck */
+
 .deck-commander-box {
   margin-top: 0.25rem;
   border-radius: 0.75rem;
@@ -1002,7 +1149,7 @@ button:hover {
 .deck-commander-image {
   width: 140px;
   border-radius: 0.75rem;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
 }
 
 /* painel de visualização do deck (tutor) */
@@ -1049,7 +1196,7 @@ button:hover {
 
 .deck-library-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(15,23,42,0.8);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.8);
 }
 
 .deck-library-card-name {
@@ -1122,4 +1269,54 @@ button:hover {
   opacity: 0.45;
   cursor: not-allowed;
   transform: none;
+}
+
+/* ========== RESPONSIVO GERAL ========== */
+
+@media (max-width: 1100px) {
+  .table-middle-row {
+    grid-template-columns: 180px 1fr 180px;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-main {
+    padding: 1rem;
+  }
+
+  .table-overview {
+    min-height: 260px;
+  }
+
+  .table-middle-row {
+    grid-template-columns: 1fr;
+    row-gap: 0.5rem;
+  }
+
+  .seat-vertical {
+    min-height: 120px;
+  }
+
+  .life-left,
+  .life-right {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  .hud-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .room-content {
+    grid-template-columns: 1fr;
+  }
+
+  .board-top-row {
+    grid-template-columns: 1fr;
+  }
+
+  .board-row {
+    grid-template-columns: 1fr;
+  }
 }
