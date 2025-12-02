@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext.jsx";
 
@@ -8,68 +8,30 @@ function Lobby() {
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [createRandom, setCreateRandom] = useState("");
 
-  // ✅ Faz o redirect para "/" DENTRO de um useEffect,
-  // não direto no render
-  useEffect(() => {
-    if (!playerName) {
-      navigate("/");
-    }
-  }, [playerName, navigate]);
-
-  function handleJoin(e) {
+  function handleCreateRoom(e) {
     e.preventDefault();
-    if (!roomCodeInput.trim() || !playerName) return;
-
-    const code = roomCodeInput.toUpperCase();
-
+    const code = Math.random().toString(36).slice(2, 7).toUpperCase();
     joinRoom({ name: playerName, room: code });
-
-    // aqui depende de como está seu router:
-    // se sua rota for "/room/:code", isso está certo
-    // se for só "/room", troque para navigate("/room");
+    setCreateRandom(code);
     navigate(`/room/${code}`);
   }
 
-  function handleCreateRoom() {
-    if (!playerName) return;
-
-    const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-    setCreateRandom(code);
-
+  function handleJoinRoom(e) {
+    e.preventDefault();
+    const code = roomCodeInput.trim().toUpperCase();
+    if (!code) return;
     joinRoom({ name: playerName, room: code });
-    navigate(`/room/${code}`); // ou "/room" se não usar :code na rota
+    navigate(`/room/${code}`);
   }
 
   return (
     <section className="page-center">
-      <h2>Lobby</h2>
-      <p>
-        Olá, {playerName || "convidado"}! Crie uma sala nova ou entre em uma já
-        existente.
-      </p>
+      <h1>Lobby</h1>
+      <p>Bem-vindo, {playerName || "jogador"}! Crie ou entre em uma sala.</p>
 
       <div className="form-card">
-        <h3>Entrar em sala existente</h3>
-        <form onSubmit={handleJoin}>
-          <label>
-            Código da sala:
-            <input
-              type="text"
-              value={roomCodeInput}
-              onChange={(e) => setRoomCodeInput(e.target.value)}
-              placeholder="Ex: AB12"
-              maxLength={6}
-            />
-          </label>
-          <button type="submit">Entrar na sala</button>
-        </form>
-      </div>
-
-      <div className="form-card">
-        <h3>Ou criar uma nova sala</h3>
-        <button type="button" onClick={handleCreateRoom}>
-          Criar sala aleatória
-        </button>
+        <h3>Criar sala aleatória</h3>
+        <button onClick={handleCreateRoom}>Criar sala</button>
         {createRandom && (
           <p className="info">
             Sala criada com código: <strong>{createRandom}</strong>
@@ -77,6 +39,22 @@ function Lobby() {
             Compartilhe esse código com seus amigos.
           </p>
         )}
+      </div>
+
+      <div className="form-card">
+        <h3>Entrar em sala por código</h3>
+        <form onSubmit={handleJoinRoom}>
+          <label>
+            Código da sala
+            <input
+              type="text"
+              value={roomCodeInput}
+              onChange={(e) => setRoomCodeInput(e.target.value)}
+              placeholder="Ex: ABCD1"
+            />
+          </label>
+          <button type="submit">Entrar</button>
+        </form>
       </div>
     </section>
   );
