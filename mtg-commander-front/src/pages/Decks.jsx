@@ -79,72 +79,76 @@ function Decks() {
   }
 
   return (
-    <section className="page-center" style={{ maxWidth: "800px" }}>
-      <h2>Meus Decks</h2>
-      <p>Gerencie aqui seus decks de Commander.</p>
+  <section className="page-center" style={{ maxWidth: "900px" }}>
+    <div className="deck-page-header">
+      <h1>Meus decks</h1>
 
-      {error && (
-        <p style={{ color: "#ff6b6b", marginBottom: "0.75rem" }}>{error}</p>
-      )}
+      <Link to="/decks/new">
+        <button className="btn-deck-primary">Criar novo deck</button>
+      </Link>
+    </div>
 
-      <div style={{ textAlign: "right", marginBottom: "1rem" }}>
-        <Link to="/decks/new">
-          <button>Criar novo deck</button>
-        </Link>
-      </div>
+    {error && <p className="error-text">{error}</p>}
 
-      {decks.length === 0 ? (
-        <p>Você ainda não tem decks. Clique em "Criar novo deck".</p>
-      ) : (
-        <div className="form-card">
-          <table style={{ width: "100%", fontSize: "0.9rem" }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left" }}>Nome</th>
-                <th style={{ textAlign: "left" }}>Comandante</th>
-                <th style={{ textAlign: "center" }}>Cartas</th>
-                <th style={{ textAlign: "right" }}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {decks.map((deck) => (
-                <tr key={deck._id}>
-                  <td>{deck.name}</td>
-                  <td>{deck.commander || "-"}</td>
-                  <td style={{ textAlign: "center" }}>
-                    {deck.cards?.reduce(
-                      (sum, c) => sum + (c.quantity || 1),
-                      0
-                    ) || 0}
-                  </td>
-                  <td style={{ textAlign: "right" }}>
+    {decks.length === 0 ? (
+      <p>Você ainda não tem decks. Clique em "Criar novo deck".</p>
+    ) : (
+      <div className="form-card deck-list-card">
+        <table className="deck-table">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Comandante</th>
+              <th style={{ textAlign: "center" }}>Cartas</th>
+              <th className="align-right">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {decks.map((deck) => (
+              <tr key={deck._id}>
+                <td>{deck.name}</td>
+                <td>{deck.commander || "-"}</td>
+                <td style={{ textAlign: "center" }}>
+                  {deck.cards?.reduce(
+                    (sum, c) => sum + (c.quantity || 1),
+                    0
+                  ) || 0}
+                </td>
+
+                <td className="align-right">
+                  <div className="deck-actions">
                     <Link to={`/decks/${deck._id}/view`}>
-                      <button style={{ marginRight: "0.5rem" }}>Ver</button>
+                      <button className="btn-deck">Ver</button>
                     </Link>
 
                     <Link to={`/decks/${deck._id}/edit`}>
-                      <button style={{ marginRight: "0.5rem" }}>Editar</button>
+                      <button className="btn-deck">Editar</button>
                     </Link>
 
                     <button
+                      className="btn-deck"
                       onClick={() => handleDuplicate(deck._id)}
-                      style={{ marginRight: "0.5rem" }}
                     >
                       Duplicar
                     </button>
 
-                    <button onClick={() => handleDelete(deck._id)}>
+                    <button
+                      className="btn-deck btn-deck-danger"
+                      onClick={() => handleDelete(deck._id)}
+                    >
                       Excluir
                     </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+);
 }
 
 export default Decks;
