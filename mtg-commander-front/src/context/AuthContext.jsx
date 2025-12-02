@@ -95,13 +95,13 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("authToken");
   }
 
-  // Atualiza info básicas do perfil
+   // Atualiza info básicas do perfil
   async function updateProfile(fields) {
     if (!token) {
       throw new Error("Usuário não autenticado");
     }
 
-    const res = await fetch(`${API_URL}/auth/me`, {
+    const res = await fetch(`${API_URL}/auth/profile`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -110,12 +110,21 @@ export function AuthProvider({ children }) {
       body: JSON.stringify(fields),
     });
 
-    const data = await res.json();
+    // Lê como texto primeiro pra evitar o "Unexpected token"
+    const text = await res.text();
+    let data = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (e) {
+      console.error("Resposta não-JSON em /auth/profile:", text);
+      throw new Error("Resposta inválida do servidor ao atualizar perfil");
+    }
 
     if (!res.ok) {
       throw new Error(data.error || "Erro ao atualizar perfil");
     }
 
+    // data é o usuário atualizado que a rota /auth/profile retorna
     setUser(data);
     return data;
   }

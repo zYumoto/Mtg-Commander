@@ -1,0 +1,26 @@
+.imgmodal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+  cursor: zoom-out;
+}
+
+.imgmodal-content {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 30px rgba(0,0,0,0.6);
+}
+
+.imgmodal-content img {
+  width: 50%;
+  height: auto;
+  display: center;
+  cursor: default;
+}

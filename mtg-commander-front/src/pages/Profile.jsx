@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
+import ImageModal from "../components/ImageModal.jsx";
 
 function Profile() {
   const { user, loading, updateProfile, changePassword } = useAuth();
@@ -7,7 +8,11 @@ function Profile() {
   const [nickname, setNickname] = useState("");
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [bannerUrl, setBannerUrl] = useState("");
   const [bio, setBio] = useState("");
+
+  const [previewImage, setPreviewImage] = useState(null);
+
   const [savingProfile, setSavingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -20,9 +25,22 @@ function Profile() {
       setNickname(user.nickname || "");
       setFullName(user.fullName || "");
       setAvatarUrl(user.avatarUrl || "");
+      setBannerUrl(user.bannerUrl || "");
       setBio(user.bio || "");
     }
   }, [user]);
+
+  // (opcional) fechar com ESC
+  useEffect(() => {
+    if (!previewImage) return;
+    function onKeyDown(e) {
+      if (e.key === "Escape") {
+        setPreviewImage(null);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [previewImage]);
 
   if (loading && !user) {
     return <div className="page-center">Carregando...</div>;
@@ -37,12 +55,21 @@ function Profile() {
     );
   }
 
+  const displayName =
+    nickname || user.nickname || user.fullName || user.email;
+
   async function handleSaveProfile(e) {
     e.preventDefault();
     setProfileMessage("");
     setSavingProfile(true);
     try {
-      await updateProfile({ nickname, fullName, avatarUrl, bio });
+      await updateProfile({
+        nickname,
+        fullName,
+        avatarUrl,
+        bannerUrl,
+        bio,
+      });
       setProfileMessage("Perfil atualizado com sucesso!");
     } catch (err) {
       setProfileMessage(err.message || "Erro ao atualizar perfil");
@@ -68,10 +95,56 @@ function Profile() {
   }
 
   return (
-    <section className="page-center profile-page">
-      <h1>Meu perfil</h1>
+    <section className="profile-page">
+      {/* ===== HERO ESTILO STEAM ===== */}
+      <div className="profile-hero">
+        {/* banner borrado de fundo */}
+        <div
+          className="profile-hero-banner"
+          style={
+            bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined
+          }
+          onClick={() => bannerUrl && setPreviewImage(bannerUrl)}
+        />
+        <div className="profile-hero-gradient" />
 
-      <div className="profile-layout">
+        <div className="profile-hero-inner">
+          {/* avatar grande */}
+          <div
+            className="profile-hero-avatar"
+            onClick={() => avatarUrl && setPreviewImage(avatarUrl)}
+            style={{ cursor: avatarUrl ? "zoom-in" : "default" }}
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={displayName} />
+            ) : (
+              <span>{displayName.charAt(0).toUpperCase()}</span>
+            )}
+          </div>
+
+          {/* nome + bio + botão editar */}
+          <div className="profile-hero-main">
+            <div className="profile-hero-text">
+              <h1>{displayName}</h1>
+              {fullName && <p className="profile-hero-sub">{fullName}</p>}
+              {bio && <p className="profile-hero-bio">{bio}</p>}
+            </div>
+
+            <div className="profile-hero-actions">
+              <span className="profile-hero-label">
+                Seu perfil Commander Online
+              </span>
+              <a href="#profile-edit" className="btn-deck">
+                Editar perfil
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== FORMULÁRIOS ===== */}
+      <div className="profile-layout" id="profile-edit">
+        {/* Coluna 1 – dados básicos */}
         <form onSubmit={handleSaveProfile} className="form-card">
           <h2>Informações básicas</h2>
 
@@ -101,7 +174,17 @@ function Profile() {
               type="text"
               value={avatarUrl}
               onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="Cole aqui o link de uma imagem"
+              placeholder="Cole aqui o link de uma imagem quadrada"
+            />
+          </label>
+
+          <label>
+            URL do banner de perfil
+            <input
+              type="text"
+              value={bannerUrl}
+              onChange={(e) => setBannerUrl(e.target.value)}
+              placeholder="Imagem larga para o fundo do perfil"
             />
           </label>
 
@@ -119,9 +202,12 @@ function Profile() {
             {savingProfile ? "Salvando..." : "Salvar perfil"}
           </button>
 
-          {profileMessage && <p className="feedback-text">{profileMessage}</p>}
+          {profileMessage && (
+            <p className="feedback-text">{profileMessage}</p>
+          )}
         </form>
 
+        {/* Coluna 2 – troca de senha */}
         <form onSubmit={handleChangePassword} className="form-card">
           <h2>Trocar senha</h2>
 
@@ -152,6 +238,14 @@ function Profile() {
           )}
         </form>
       </div>
+
+      {/* ===== MODAL DE IMAGEM ===== */}
+      {previewImage && (
+        <ImageModal
+          url={previewImage}
+          onClose={() => setPreviewImage(null)}
+        />
+      )}
     </section>
   );
 }
