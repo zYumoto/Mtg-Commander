@@ -3,27 +3,14 @@ import React, { useState } from "react";
 import { useGame } from "../context/GameContext.jsx";
 
 function PlayerHud({ player, onPassTurn, onLifeChange }) {
-  const {
-    playerName,
-    commanderCard: commanderFromContext,
-    castCommander,
-    moveCard,
-    toggleTap,
-    updateCardCounter,
-  } = useGame();
+  const { playerName, moveCard, toggleTap, updateCardCounter } = useGame();
 
   const isSelf = player?.name === playerName;
 
-const life = player?.life ?? 40;
+  const life = player?.life ?? 40;
 
-const fullHand = Array.isArray(player?.hand) ? player.hand : [];
-
-const hand = isSelf ? fullHand : [];
-
-
-  const commanderCard = player?.commanderCard || commanderFromContext || null;
-  const commanderCastCount = player?.commanderCastCount || 0;
-  const commanderTax = commanderCastCount * 2; 
+  const fullHand = Array.isArray(player?.hand) ? player.hand : [];
+  const hand = isSelf ? fullHand : [];
 
   const graveyard = player?.graveyard || [];
   const battlefield = player?.battlefield || [];
@@ -73,20 +60,14 @@ const hand = isSelf ? fullHand : [];
   // ===== TAP / UNTAP =====
   function handleToggleTap(zoneKey, card) {
     if (!card?.instanceId) return;
-    // tap/untap só no campo de permanentes por enquanto
     if (zoneKey !== "battlefield" && zoneKey !== "lands") return;
     toggleTap?.(card.instanceId, zoneKey);
   }
 
-  // ===== RENDER DAS ZONAS (3 POR LINHA) =====
-    // ===== RENDER DAS ZONAS =====
+  // ===== RENDER DAS ZONAS =====
   function renderZoneCards(cards, zoneKey) {
     if (!cards || cards.length === 0) {
-      return (
-        <p className="board-helper">
-          Nenhuma carta aqui ainda.
-        </p>
-      );
+      return <p className="board-helper">Nenhuma carta aqui ainda.</p>;
     }
 
     const isLands = zoneKey === "lands";
@@ -152,7 +133,7 @@ const hand = isSelf ? fullHand : [];
                     fontSize: "0.7rem",
                     zIndex: 2,
                   }}
-                  onClick={(e) => e.stopPropagation()} // não dar tap quando clicar no badge
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <button
                     type="button"
@@ -170,7 +151,13 @@ const hand = isSelf ? fullHand : [];
                   >
                     −
                   </button>
-                  <span style={{ color: "#fff", minWidth: "1.2rem", textAlign: "center" }}>
+                  <span
+                    style={{
+                      color: "#fff",
+                      minWidth: "1.2rem",
+                      textAlign: "center",
+                    }}
+                  >
                     {counters}
                   </span>
                   <button
@@ -211,7 +198,6 @@ const hand = isSelf ? fullHand : [];
     );
   }
 
-  // ===== GRAVEYARD: última carta no campo + modal completo =====
   const lastGraveCard =
     graveyard.length > 0 ? graveyard[graveyard.length - 1] : null;
 
@@ -259,65 +245,8 @@ const hand = isSelf ? fullHand : [];
       <div className="hud-board-layout">
         {/* ========== ZONA PRINCIPAL DO BOARD ========== */}
         <div className="board-main">
-          {/* LINHA SUPERIOR: COMMANDER + CEMITÉRIO */}
+          {/* CEMITÉRIO EM CIMA */}
           <div className="board-top-row">
-            <div className="board-left-column">
-              <div className="board-rect board-commander">
-                <div className="board-rect-title">COMMANDER</div>
-
-                {commanderCard ? (
-                  <>
-                    <img
-                      src={
-                        commanderCard.image_uris?.normal ||
-                        commanderCard.image_uris?.large ||
-                        commanderCard.image_uris?.small ||
-                        ""
-                      }
-                      alt={commanderCard.name}
-                      style={{
-                        width: "160px",
-                        borderRadius: "10px",
-                        marginTop: "0.5rem",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.6)",
-                      }}
-                    />
-
-                    <div
-                      style={{
-                        marginTop: "0.4rem",
-                        fontSize: "0.8rem",
-                        opacity: 0.85,
-                      }}
-                    >
-                      Já foi conjurado:{" "}
-                      <strong>{commanderCastCount}</strong>{" "}
-                      vez{commanderCastCount === 1 ? "" : "es"}.
-                      <br />
-                      Taxa atual:{" "}
-                      <strong>+{commanderTax}</strong> mana genérica.
-                    </div>
-
-                    {isSelf && (
-                      <button
-                        type="button"
-                        style={{ marginTop: "0.4rem" }}
-                        onClick={() => castCommander && castCommander()}
-                      >
-                        Baixar comandante para o campo
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <p className="board-helper">
-                    Seu comandante aparecerá aqui quando carregar o deck.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="board-center-spacer" />
-
             <div
               className="board-rect board-cemetery"
               onDragOver={allowDrop}
@@ -388,7 +317,7 @@ const hand = isSelf ? fullHand : [];
             </div>
           </div>
 
-          {/* LINHA DE BAIXO: LANDS (zona própria) */}
+          {/* LINHA DE BAIXO: LANDS */}
           <div className="board-row lands-row">
             <div
               className="board-rect board-zone board-lands"
@@ -405,55 +334,54 @@ const hand = isSelf ? fullHand : [];
         </div>
 
         {/* ========== FAIXA DA MÃO ========== */}
-<div
-  className="board-hand"
-  onDragOver={allowDrop}
-  onDrop={(e) => onDropCard(e, "hand")}
->
-  {/* Se NÃO for você, não mostra as cartas, só a quantidade */}
-  {!isSelf ? (
-    <p className="hud-hand-empty">
-      {fullHand.length === 0
-        ? "Nenhuma carta na mão."
-        : `Cartas na mão: ${fullHand.length}`}
-    </p>
-  ) : hand.length === 0 ? (
-    <p className="hud-hand-empty">
-      Nenhuma carta na mão. Use o painel de deck para comprar cartas.
-    </p>
-  ) : (
-    <div className="board-hand-cards">
-      {hand.map((card, index) => (
         <div
-          key={card.instanceId}
-          className="board-hand-card"
-          style={{
-            transform: `translateY(${Math.abs(
-              index - (hand.length - 1) / 2
-            ) * 2}px) rotate(${
-              (index - (hand.length - 1) / 2) * 4
-            }deg)`,
-          }}
-          title={card.name}
-          draggable
-          onDragStart={(e) => onDragStartCard(e, card, "hand")}
-          onMouseEnter={() => setHoveredCard(card)}
-          onMouseLeave={() => setHoveredCard(null)}
+          className="board-hand"
+          onDragOver={allowDrop}
+          onDrop={(e) => onDropCard(e, "hand")}
         >
-          <img
-            src={
-              card.image_uris?.small ||
-              card.image_uris?.normal ||
-              ""
-            }
-            alt={card.name}
-          />
+          {/* Se NÃO for você, mostra só quantidade */}
+          {!isSelf ? (
+            <p className="hud-hand-empty">
+              {fullHand.length === 0
+                ? "Nenhuma carta na mão."
+                : `Cartas na mão: ${fullHand.length}`}
+            </p>
+          ) : hand.length === 0 ? (
+            <p className="hud-hand-empty">
+              Nenhuma carta na mão. Use o painel de deck para comprar cartas.
+            </p>
+          ) : (
+            <div className="board-hand-cards">
+              {hand.map((card, index) => (
+                <div
+                  key={card.instanceId}
+                  className="board-hand-card"
+                  style={{
+                    transform: `translateY(${Math.abs(
+                      index - (hand.length - 1) / 2
+                    ) * 2}px) rotate(${
+                      (index - (hand.length - 1) / 2) * 4
+                    }deg)`,
+                  }}
+                  title={card.name}
+                  draggable
+                  onDragStart={(e) => onDragStartCard(e, card, "hand")}
+                  onMouseEnter={() => setHoveredCard(card)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                >
+                  <img
+                    src={
+                      card.image_uris?.small ||
+                      card.image_uris?.normal ||
+                      ""
+                    }
+                    alt={card.name}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      ))}
-    </div>
-  )}
-</div>
-
       </div>
 
       {/* ===== MODAL COMPLETO DO CEMITÉRIO ===== */}

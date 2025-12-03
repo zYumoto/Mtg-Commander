@@ -5,7 +5,6 @@ import { useAuth } from "./AuthContext.jsx";
 const GameContext = createContext(null);
 
 export function GameProvider({ children }) {
-  // 🔹 Pega o usuário logado
   const { user } = useAuth();
 
   const [playerName, setPlayerName] = useState("");
@@ -13,6 +12,9 @@ export function GameProvider({ children }) {
   const [players, setPlayers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [connected, setConnected] = useState(false);
+
+  // STACK GLOBAL (vem da sala)
+  const [stack, setStack] = useState([]);
 
   // deck local (somente cartas que ainda estão no deck)
   const [library, setLibrary] = useState([]);
@@ -33,7 +35,7 @@ export function GameProvider({ children }) {
     });
   }
 
-  // 🔹 Aqui agora o `user` existe
+  // 🔹 Pega nome do usuário logado
   useEffect(() => {
     if (user?.nickname) {
       setPlayerName(user.nickname);
@@ -55,9 +57,13 @@ export function GameProvider({ children }) {
 
     function onRoomState(state) {
       if (!state) return;
+
       setRoomCode(state.roomCode);
       setPlayers(state.players || []);
       setMessages(state.messages || []);
+      setStack(state.stack || []);
+
+      console.log("🧱 room-state recebido, stack =", state.stack);
     }
 
     socket.on("connect", onConnect);
@@ -126,12 +132,12 @@ export function GameProvider({ children }) {
     });
   }
 
-    // Mover carta entre zonas (hand, permanents1, permanents2, lands, graveyard)
+  // Mover carta entre zonas (hand, battlefield, lands, graveyard, exile, stack)
   function moveCard({ cardInstanceId, fromZone, toZone }) {
     if (!roomCode || !playerName || !cardInstanceId || !fromZone || !toZone) return;
     if (fromZone === toZone) return;
 
-    socket.emit('move-card', {
+    socket.emit("move-card", {
       roomCode,
       playerName,
       cardInstanceId,
@@ -140,7 +146,7 @@ export function GameProvider({ children }) {
     });
   }
 
-    // Tap / Untap de uma carta em uma zona (ex: battlefield)
+  // Tap / Untap de uma carta em uma zona (ex: battlefield)
   function toggleTap(cardInstanceId, zone) {
     if (!roomCode || !playerName || !cardInstanceId || !zone) return;
 
@@ -351,6 +357,7 @@ export function GameProvider({ children }) {
     moveCard,
     toggleTap,
     updateCardCounter,
+    stack,        // <<< pilha global disponível no contexto
   };
 
   return (

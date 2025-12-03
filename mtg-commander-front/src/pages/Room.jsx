@@ -1,3 +1,4 @@
+// src/pages/Room.jsx
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext.jsx";
@@ -7,10 +8,16 @@ import Chat from "../components/Chat.jsx";
 import DeckPanel from "../components/DeckPanel.jsx";
 import PlayerHudMini from "../components/PlayerHudMini.jsx";
 
-
 function Room() {
   const navigate = useNavigate();
-  const { roomCode, playerName, players = [], updatePlayerLife } = useGame();
+  const {
+    roomCode,
+    playerName,
+    players = [],
+    updatePlayerLife,
+    moveCard,          
+    stack: globalStack,
+  } = useGame();
 
   // se entrar sem sala (refresh direto na URL, por ex.), volta pro lobby
   if (!roomCode) {
@@ -57,10 +64,57 @@ function Room() {
   const focusedPlayer =
     players.find((p) => p.id === focusedId) || selfPlayer || null;
 
+  // ====== STACK GLOBAL (quadrado do meio da mesa) ======
+  const [showStackModal, setShowStackModal] = useState(false);
+
+  // agora a stack é GLOBAL da sala
+  const stack = globalStack || [];
+  const lastStackCard =
+    stack.length > 0 ? stack[stack.length - 1] : null;
+
+
   function handleSeatClick(player) {
     if (!player) return;
     setFocusedId(player.id);
   }
+
+  function allowDropStack(e) {
+    e.preventDefault();
+  }
+
+  function handleDropOnStack(e) {
+    e.preventDefault();
+    const raw = e.dataTransfer.getData("application/json");
+    if (!raw) return;
+
+    try {
+      const { instanceId, fromZone } = JSON.parse(raw);
+      if (!instanceId || !fromZone) return;
+      if (fromZone === "stack") return;
+
+      moveCard?.({
+        cardInstanceId: instanceId,
+        fromZone,
+        toZone: "stack",
+      });
+    } catch (err) {
+      console.error("Erro no drop da stack global:", err);
+    }
+  }
+
+function handleDragStartStackCard(e, card) {
+  if (!card?.instanceId) return;
+
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData(
+    "application/json",
+    JSON.stringify({
+      instanceId: card.instanceId,
+      fromZone: "stack",     // <<< importantíssimo
+    })
+  );
+}
+
 
   return (
     <section className="room">
@@ -129,8 +183,39 @@ function Room() {
                 />
               </div>
 
+              {/* STACK GLOBAL NO MEIO DA MESA */}
               <div className="table-stack">
-                <div className="table-stack-box">STACK</div>
+                <div
+                  className="table-stack-box"
+                  onDragOver={allowDropStack}
+                  onDrop={handleDropOnStack}
+                  onClick={() => {
+                    if (stack.length > 0) setShowStackModal(true);
+                  }}
+                  style={{
+                    cursor: stack.length > 0 ? "pointer" : "default",
+                  }}
+                >
+                  <div className="table-stack-label">STACK</div>
+
+                  {lastStackCard && (
+                  <div
+                    className="table-stack-preview"
+                    draggable
+                    onDragStart={(e) => handleDragStartStackCard(e, lastStackCard)}
+                  >
+                    <img
+                      src={
+                        lastStackCard.image_uris?.small ||
+                        lastStackCard.image_uris?.normal ||
+                        ""
+                      }
+                      alt={lastStackCard.name}
+                      style={{ width: "80px", borderRadius: "6px" }}
+                    />
+                  </div>
+                )}
+                </div>
               </div>
 
               <div className="table-player-right">
@@ -168,6 +253,54 @@ function Room() {
               }}
             />
           )}
+
+          {/* MODAL DA STACK GLOBAL (usa stack do jogador focado) */}
+          {showStackModal && (
+            <div className="graveyard-modal-backdrop">
+              <div className="graveyard-modal">
+                <div className="graveyard-modal-header">
+                  <h3>Stack da mesa</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowStackModal(false)}
+                  >
+                    Fechar
+                  </button>
+                </div>
+                <p className="board-helper">
+                  Cartas atualmente na pilha, do fundo para o topo.
+                </p>
+
+                <div className="graveyard-modal-grid">
+                  {stack.length === 0 ? (
+                    <p className="board-helper">Nenhuma carta na pilha.</p>
+                  ) : (
+                    stack.map((card) => (
+                      <div
+                        key={card.instanceId}
+                        className="board-zone-card"
+                        title={card.name}
+                      >
+                        <img
+                          src={
+                            card.image_uris?.small ||
+                            card.image_uris?.normal ||
+                            ""
+                          }
+                          alt={card.name}
+                          style={{
+                          width: "90px",          // <<< tamanho fixo pequeno
+                          borderRadius: "6px",
+                          display: "block",
+                        }}
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>
@@ -192,9 +325,8 @@ function SeatCard({
       className={`seat-card ${vertical ? "seat-vertical" : "seat-horizontal"} ${
         isFocused ? "seat-focused" : ""
       }`}
-      onClick={hasPlayer ? onClick : undefined}
+      onClick={player ? onClick : undefined}
     >
-      {/* QUADRADO: só mini-board ou “Aguardando jogador” */}
       <div className="seat-rect">
         {!hasPlayer ? (
           <span className="seat-empty">Aguardando jogador</span>
@@ -208,20 +340,22 @@ function SeatCard({
               alignItems: "center",
               justifyContent: "center",
               overflow: "hidden",
-              padding: 0,
-              // ajusta o tamanho do mini dentro do quadrado
-              transform: "none",
-              width: "100%",
-              height: "100%",
-              transformOrigin: "center center",
             }}
           >
-            <PlayerHudMini player={player} />
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                transform: vertical ? "rotate(90deg) scale(0.8)" : "none",
+                transformOrigin: "center center",
+              }}
+            >
+              <PlayerHudMini player={player} />
+            </div>
           </div>
         )}
       </div>
 
-      {/* NOME FORA DO QUADRADO */}
       {hasPlayer && (
         <span className="seat-label">
           {name}
@@ -229,7 +363,6 @@ function SeatCard({
         </span>
       )}
 
-      {/* VIDA FORA DO QUADRADO (já era assim) */}
       {hasPlayer && (
         <div className={`seat-life-wrapper life-${labelPosition}`}>
           <div className="seat-life-pill">
@@ -241,7 +374,5 @@ function SeatCard({
     </div>
   );
 }
-
-
 
 export default Room;

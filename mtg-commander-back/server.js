@@ -54,6 +54,7 @@ const PlayerSchema = new mongoose.Schema(
     lands: [mongoose.Schema.Types.Mixed],
     graveyard: [mongoose.Schema.Types.Mixed],
     exile: [mongoose.Schema.Types.Mixed],
+    stack: [mongoose.Schema.Types.Mixed], // <<< NOVO: zona de stack
   },
   { _id: false }
 );
@@ -72,8 +73,10 @@ const RoomSchema = new mongoose.Schema({
   players: [PlayerSchema],
   messages: [MessageSchema],
   owner: String,      // dono da sala
-  startTime: Date,    // quando a partida começou
+  startTime: Date,    
+  stack: [mongoose.Schema.Types.Mixed], 
 });
+
 
 const RoomModel = mongoose.model('Room', RoomSchema);
 
@@ -103,6 +106,7 @@ function getRoomState(code) {
     messages: room.messages || [],
     owner: room.owner || null,
     startTime: room.startTime || null,
+    stack: room.stack || [],
   };
 }
 
@@ -125,6 +129,7 @@ async function syncRoomToDb(code) {
     lands: p.lands || [],
     graveyard: p.graveyard || [],
     exile: p.exile || [],
+    stack: p.stack || [],            // <<< salva stack no Mongo
   }));
 
   const messagesArray = (room.messages || []).map((m) => ({
@@ -143,6 +148,7 @@ async function syncRoomToDb(code) {
           messages: messagesArray,
           owner: room.owner || null,
           startTime: room.startTime || null,
+          stack: room.stack || [],
         },
       },
       { upsert: true, new: true }
@@ -172,6 +178,7 @@ io.on('connection', (socket) => {
         messages: [],
         owner: null,
         startTime: null,
+        stack: [],
       };
     }
 
@@ -203,6 +210,7 @@ io.on('connection', (socket) => {
       player = {
         ...oldPlayer,
         id: socket.id,
+        stack: oldPlayer.stack || [], // garante que exista a pilha
       };
     } else {
       // Se não existia, cria um jogador novo do zero
@@ -219,6 +227,7 @@ io.on('connection', (socket) => {
         battlefield: [],
         graveyard: [],
         exile: [],
+        stack: [], // <<< inicia pilha vazia
       };
     }
 
@@ -312,6 +321,7 @@ io.on('connection', (socket) => {
     io.to(code).emit('room-state', getRoomState(code));
     await syncRoomToDb(code);
   });
+
   // ======================
   // Tap / Untap de carta
   // ======================
@@ -322,7 +332,7 @@ io.on('connection', (socket) => {
 
     if (!cardInstanceId || !zone) return;
 
-  const validZones = ['hand', 'battlefield', 'lands', 'graveyard', 'exile'];
+    const validZones = ['hand', 'battlefield', 'lands', 'graveyard', 'exile'];
     if (!validZones.includes(zone)) {
       console.log("⚠️ Zona inválida para toggle-tap:", zone);
       return;
@@ -407,20 +417,26 @@ io.on('connection', (socket) => {
   // Mover carta entre zonas
   // ======================
   socket.on('move-card', async ({ roomCode, playerName, cardInstanceId, fromZone, toZone }) => {
-    console.log('BACKEND move-card:', roomCode, playerName, cardInstanceId, fromZone, '->', toZone);
+  console.log('BACKEND move-card:', roomCode, playerName, cardInstanceId, fromZone, '->', toZone);
 
-    const code = roomCode?.toUpperCase();
-    const room = rooms[code];
-    if (!room) return;
+  const code = roomCode?.toUpperCase();
+  const room = rooms[code];
+  if (!room) return;
 
-    if (!cardInstanceId || !fromZone || !toZone || fromZone === toZone) return;
+  if (!cardInstanceId || !fromZone || !toZone || fromZone === toZone) return;
 
-    const validZones = ['hand', 'battlefield', 'lands','graveyard', 'exile'];
-    if (!validZones.includes(fromZone) || !validZones.includes(toZone)) {
-      console.log('⚠️ Zona inválida:', fromZone, toZone);
-      return;
-    }
+  const validZones = ['hand', 'battlefield', 'lands', 'graveyard', 'exile', 'stack'];
+  if (!validZones.includes(fromZone) || !validZones.includes(toZone)) {
+    console.log('⚠️ Zona inválida:', fromZone, toZone);
+    return;
+  }
 
+  // ======================
+  // CASOS ENVOLVENDO STACK GLOBAL
+  // ======================
+
+  // Player -> STACK (conjurar mágica / habilidade)
+  if (toZone === 'stack' && fromZone !== 'stack') {
     const playerEntry = Object.entries(room.players).find(
       ([, p]) => p.name === playerName
     );
@@ -429,32 +445,105 @@ io.on('connection', (socket) => {
     const [socketId, player] = playerEntry;
 
     const fromArray = Array.isArray(player[fromZone]) ? [...player[fromZone]] : [];
-    const toArray = Array.isArray(player[toZone]) ? [...player[toZone]] : [];
-
     const cardIndex = fromArray.findIndex(
       (c) => c.instanceId && c.instanceId === cardInstanceId
     );
-
     if (cardIndex === -1) {
       console.log('⚠️ Carta não encontrada na zona de origem:', fromZone, cardInstanceId);
       return;
     }
 
     const [card] = fromArray.splice(cardIndex, 1);
-    toArray.push(card);
+
+    const stackArr = Array.isArray(room.stack) ? [...room.stack] : [];
+    stackArr.push({
+      ...card,
+      ownerName: playerName,   // guarda quem conjurou (pode ajudar depois)
+    });
+    room.stack = stackArr;
 
     room.players[socketId] = {
       ...player,
       [fromZone]: fromArray,
+    };
+
+    io.to(code).emit('room-state', getRoomState(code));
+    await syncRoomToDb(code);
+    return;
+  }
+
+  // STACK -> Player (resolver a mágica / habilidade)
+  if (fromZone === 'stack' && toZone !== 'stack') {
+    const stackArr = Array.isArray(room.stack) ? [...room.stack] : [];
+    const cardIndex = stackArr.findIndex(
+      (c) => c.instanceId && c.instanceId === cardInstanceId
+    );
+    if (cardIndex === -1) {
+      console.log('⚠️ Carta não encontrada na STACK:', cardInstanceId);
+      return;
+    }
+
+    const [card] = stackArr.splice(cardIndex, 1);
+    room.stack = stackArr;
+
+    const playerEntry = Object.entries(room.players).find(
+      ([, p]) => p.name === playerName
+    );
+    if (!playerEntry) return;
+
+    const [socketId, player] = playerEntry;
+
+    const toArray = Array.isArray(player[toZone]) ? [...player[toZone]] : [];
+    toArray.push(card);
+
+    room.players[socketId] = {
+      ...player,
       [toZone]: toArray,
     };
 
     io.to(code).emit('room-state', getRoomState(code));
     await syncRoomToDb(code);
-  });
+    return;
+  }
+
+  // ======================
+  // RESTO: Player -> Player (sem stack)
+  // ======================
+  const playerEntry = Object.entries(room.players).find(
+    ([, p]) => p.name === playerName
+  );
+  if (!playerEntry) return;
+
+  const [socketId, player] = playerEntry;
+
+  const fromArray = Array.isArray(player[fromZone]) ? [...player[fromZone]] : [];
+  const toArray = Array.isArray(player[toZone]) ? [...player[toZone]] : [];
+
+  const cardIndex = fromArray.findIndex(
+    (c) => c.instanceId && c.instanceId === cardInstanceId
+  );
+
+  if (cardIndex === -1) {
+    console.log('⚠️ Carta não encontrada na zona de origem:', fromZone, cardInstanceId);
+    return;
+  }
+
+  const [card] = fromArray.splice(cardIndex, 1);
+  toArray.push(card);
+
+  room.players[socketId] = {
+    ...player,
+    [fromZone]: fromArray,
+    [toZone]: toArray,
+  };
+
+  io.to(code).emit('room-state', getRoomState(code));
+  await syncRoomToDb(code);
+});
 
 
-    socket.on("clear-hand", async ({ roomCode, playerName }) => {
+
+  socket.on("clear-hand", async ({ roomCode, playerName }) => {
     const code = roomCode?.toUpperCase();
     const room = rooms[code];
     if (!room) return;

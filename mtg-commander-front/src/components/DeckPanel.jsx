@@ -18,7 +18,7 @@ function DeckPanel() {
     setCommanderCard,
     returnHandToLibrary,
     mulligan,
-    sendMessage, // 👈 vamos usar pra logar as ações no chat
+    sendMessage,
   } = useGame();
   const { token } = useAuth();
 
@@ -28,6 +28,7 @@ function DeckPanel() {
   const [loadingLoad, setLoadingLoad] = useState(false);
   const [error, setError] = useState("");
   const [showLibraryView, setShowLibraryView] = useState(false);
+  const [hasLoadedDeck, setHasLoadedDeck] = useState(false); // <<< NOVO
 
   // pegar o player local na lista da sala
   const me = players.find((p) => p.name === playerName);
@@ -68,7 +69,7 @@ function DeckPanel() {
   }, [token]);
 
   async function handleLoadDeck() {
-    if (!token || !selectedDeckId) return;
+    if (!token || !selectedDeckId || hasLoadedDeck) return; // se já carregou, ignora
 
     setLoadingLoad(true);
     setError("");
@@ -90,10 +91,11 @@ function DeckPanel() {
         setCommanderCard(data.commanderCard); // manda comandante para a sala
       }
 
-      // 🔹 mensagem no chat
       const deck = decks.find((d) => d._id === selectedDeckId);
       const deckName = deck?.name || "(sem nome)";
       sendMessage?.(`${playerName} carregou o deck "${deckName}" e embaralhou.`);
+
+      setHasLoadedDeck(true); // <<< MARCA QUE JÁ CARREGOU UMA VEZ
     } catch (err) {
       console.error("Erro ao carregar deck resolvido:", err);
       setError(err.message);
@@ -171,6 +173,7 @@ function DeckPanel() {
               <select
                 value={selectedDeckId}
                 onChange={(e) => setSelectedDeckId(e.target.value)}
+                disabled={hasLoadedDeck} // opcional: trava troca de deck depois
               >
                 {decks.map((d) => (
                   <option key={d._id} value={d._id}>
@@ -181,17 +184,28 @@ function DeckPanel() {
             </label>
           </div>
 
-          {/* BOTÕES */}
-          <div className="deck-panel-row deck-panel-row-buttons deck-panel-row-full">
-            <button
-              type="button"
-              onClick={handleLoadDeck}
-              disabled={loadingLoad}
-              className="deck-btn deck-btn-primary deck-btn-full"
+          {/* BOTÃO Carregar + Embaralhar (só aparece se ainda não carregou) */}
+          {!hasLoadedDeck && (
+            <div className="deck-panel-row deck-panel-row-buttons deck-panel-row-full">
+              <button
+                type="button"
+                onClick={handleLoadDeck}
+                disabled={loadingLoad}
+                className="deck-btn deck-btn-primary deck-btn-full"
+              >
+                {loadingLoad ? "Carregando..." : "Carregar + Embaralhar"}
+              </button>
+            </div>
+          )}
+
+          {hasLoadedDeck && (
+            <p
+              className="deck-panel-info"
+              style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}
             >
-              {loadingLoad ? "Carregando..." : "Carregar + Embaralhar"}
-            </button>
-          </div>
+              Deck já foi carregado e embaralhado.
+            </p>
+          )}
 
           <div className="deck-panel-row deck-panel-row-buttons">
             <button
