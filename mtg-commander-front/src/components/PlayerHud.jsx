@@ -14,13 +14,16 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
 
   const isSelf = player?.name === playerName;
 
-  const life = player?.life ?? 40;
-  const hand = player?.hand || [];
+const life = player?.life ?? 40;
 
-  // commander pode vir do player (socket) ou do contexto local
+const fullHand = Array.isArray(player?.hand) ? player.hand : [];
+
+const hand = isSelf ? fullHand : [];
+
+
   const commanderCard = player?.commanderCard || commanderFromContext || null;
   const commanderCastCount = player?.commanderCastCount || 0;
-  const commanderTax = commanderCastCount * 2; // +2 genérico por cast
+  const commanderTax = commanderCastCount * 2; 
 
   const graveyard = player?.graveyard || [];
   const battlefield = player?.battlefield || [];
@@ -402,47 +405,55 @@ function PlayerHud({ player, onPassTurn, onLifeChange }) {
         </div>
 
         {/* ========== FAIXA DA MÃO ========== */}
+<div
+  className="board-hand"
+  onDragOver={allowDrop}
+  onDrop={(e) => onDropCard(e, "hand")}
+>
+  {/* Se NÃO for você, não mostra as cartas, só a quantidade */}
+  {!isSelf ? (
+    <p className="hud-hand-empty">
+      {fullHand.length === 0
+        ? "Nenhuma carta na mão."
+        : `Cartas na mão: ${fullHand.length}`}
+    </p>
+  ) : hand.length === 0 ? (
+    <p className="hud-hand-empty">
+      Nenhuma carta na mão. Use o painel de deck para comprar cartas.
+    </p>
+  ) : (
+    <div className="board-hand-cards">
+      {hand.map((card, index) => (
         <div
-          className="board-hand"
-          onDragOver={allowDrop}
-          onDrop={(e) => onDropCard(e, "hand")}
+          key={card.instanceId}
+          className="board-hand-card"
+          style={{
+            transform: `translateY(${Math.abs(
+              index - (hand.length - 1) / 2
+            ) * 2}px) rotate(${
+              (index - (hand.length - 1) / 2) * 4
+            }deg)`,
+          }}
+          title={card.name}
+          draggable
+          onDragStart={(e) => onDragStartCard(e, card, "hand")}
+          onMouseEnter={() => setHoveredCard(card)}
+          onMouseLeave={() => setHoveredCard(null)}
         >
-          {hand.length === 0 ? (
-            <p className="hud-hand-empty">
-              Nenhuma carta na mão. Use o painel de deck para comprar cartas.
-            </p>
-          ) : (
-            <div className="board-hand-cards">
-              {hand.map((card, index) => (
-                <div
-                  key={card.instanceId}
-                  className="board-hand-card"
-                  style={{
-                    transform: `translateY(${Math.abs(
-                      index - (hand.length - 1) / 2
-                    ) * 2}px) rotate(${
-                      (index - (hand.length - 1) / 2) * 4
-                    }deg)`,
-                  }}
-                  title={card.name}
-                  draggable
-                  onDragStart={(e) => onDragStartCard(e, card, "hand")}
-                  onMouseEnter={() => setHoveredCard(card)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                >
-                  <img
-                    src={
-                      card.image_uris?.small ||
-                      card.image_uris?.normal ||
-                      ""
-                    }
-                    alt={card.name}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          <img
+            src={
+              card.image_uris?.small ||
+              card.image_uris?.normal ||
+              ""
+            }
+            alt={card.name}
+          />
         </div>
+      ))}
+    </div>
+  )}
+</div>
+
       </div>
 
       {/* ===== MODAL COMPLETO DO CEMITÉRIO ===== */}
