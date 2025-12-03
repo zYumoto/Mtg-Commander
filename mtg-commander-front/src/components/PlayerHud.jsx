@@ -200,7 +200,7 @@ const hand = isSelf ? fullHand : [];
                 }
                 alt={card.name}
                 style={{
-                  width: isLands ? "80px" : "100%",
+                  width: isLands ? "80px" : "60%",
                   borderRadius: "6px",
                 }}
               />

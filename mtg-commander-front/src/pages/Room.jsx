@@ -5,6 +5,8 @@ import { useGame } from "../context/GameContext.jsx";
 import PlayerHud from "../components/PlayerHud.jsx";
 import Chat from "../components/Chat.jsx";
 import DeckPanel from "../components/DeckPanel.jsx";
+import PlayerHudMini from "../components/PlayerHudMini.jsx";
+
 
 function Room() {
   const navigate = useNavigate();
@@ -181,6 +183,7 @@ function SeatCard({
   isFocused = false,
   isSelf = false,
 }) {
+  const hasPlayer = !!player;
   const life = player?.life ?? 40;
   const name = player?.name || "Aguardando jogador";
 
@@ -189,20 +192,45 @@ function SeatCard({
       className={`seat-card ${vertical ? "seat-vertical" : "seat-horizontal"} ${
         isFocused ? "seat-focused" : ""
       }`}
-      onClick={player ? onClick : undefined}
+      onClick={hasPlayer ? onClick : undefined}
     >
+      {/* QUADRADO: só mini-board ou “Aguardando jogador” */}
       <div className="seat-rect">
-        {!player ? (
+        {!hasPlayer ? (
           <span className="seat-empty">Aguardando jogador</span>
         ) : (
-          <span className="seat-label">
-            {name}
-            {isSelf && " (você)"}
-          </span>
+          <div
+            className="seat-mini-wrapper"
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+              padding: 0,
+              // ajusta o tamanho do mini dentro do quadrado
+              transform: "none",
+              width: "100%",
+              height: "100%",
+              transformOrigin: "center center",
+            }}
+          >
+            <PlayerHudMini player={player} />
+          </div>
         )}
       </div>
 
-      {player && (
+      {/* NOME FORA DO QUADRADO */}
+      {hasPlayer && (
+        <span className="seat-label">
+          {name}
+          {isSelf && " (você)"}
+        </span>
+      )}
+
+      {/* VIDA FORA DO QUADRADO (já era assim) */}
+      {hasPlayer && (
         <div className={`seat-life-wrapper life-${labelPosition}`}>
           <div className="seat-life-pill">
             <span>vida</span>
@@ -213,5 +241,7 @@ function SeatCard({
     </div>
   );
 }
+
+
 
 export default Room;
