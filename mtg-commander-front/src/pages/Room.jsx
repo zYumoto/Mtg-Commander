@@ -1,5 +1,5 @@
 // src/pages/Room.jsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext.jsx";
 
@@ -15,7 +15,7 @@ function Room() {
     playerName,
     players = [],
     updatePlayerLife,
-    moveCard,          
+    moveCard,
     stack: globalStack,
   } = useGame();
 
@@ -67,11 +67,12 @@ function Room() {
   // ====== STACK GLOBAL (quadrado do meio da mesa) ======
   const [showStackModal, setShowStackModal] = useState(false);
 
+  // card em hover na stack → preview no canto
+  const [hoveredStackCard, setHoveredStackCard] = useState(null);
+
   // agora a stack é GLOBAL da sala
   const stack = globalStack || [];
-  const lastStackCard =
-    stack.length > 0 ? stack[stack.length - 1] : null;
-
+  const lastStackCard = stack.length > 0 ? stack[stack.length - 1] : null;
 
   function handleSeatClick(player) {
     if (!player) return;
@@ -102,19 +103,18 @@ function Room() {
     }
   }
 
-function handleDragStartStackCard(e, card) {
-  if (!card?.instanceId) return;
+  function handleDragStartStackCard(e, card) {
+    if (!card?.instanceId) return;
 
-  e.dataTransfer.effectAllowed = "move";
-  e.dataTransfer.setData(
-    "application/json",
-    JSON.stringify({
-      instanceId: card.instanceId,
-      fromZone: "stack",     // <<< importantíssimo
-    })
-  );
-}
-
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData(
+      "application/json",
+      JSON.stringify({
+        instanceId: card.instanceId,
+        fromZone: "stack", // <<< importantíssimo
+      })
+    );
+  }
 
   return (
     <section className="room">
@@ -145,7 +145,13 @@ function handleDragStartStackCard(e, card) {
 
       <div className="room-content">
         {/* LADO ESQUERDO: chat + painel de deck */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.75rem",
+          }}
+        >
           {/* Chat */}
           <div className="form-card" style={{ padding: 0, minHeight: "260px" }}>
             <Chat />
@@ -158,7 +164,13 @@ function handleDragStartStackCard(e, card) {
         </div>
 
         {/* LADO DIREITO: mesa 4 players + HUD */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.75rem",
+          }}
+        >
           {/* overview da mesa */}
           <div className="table-overview">
             <div className="table-player-top">
@@ -199,22 +211,26 @@ function handleDragStartStackCard(e, card) {
                   <div className="table-stack-label">STACK</div>
 
                   {lastStackCard && (
-                  <div
-                    className="table-stack-preview"
-                    draggable
-                    onDragStart={(e) => handleDragStartStackCard(e, lastStackCard)}
-                  >
-                    <img
-                      src={
-                        lastStackCard.image_uris?.small ||
-                        lastStackCard.image_uris?.normal ||
-                        ""
+                    <div
+                      className="table-stack-preview"
+                      draggable
+                      onDragStart={(e) =>
+                        handleDragStartStackCard(e, lastStackCard)
                       }
-                      alt={lastStackCard.name}
-                      style={{ width: "80px", borderRadius: "6px" }}
-                    />
-                  </div>
-                )}
+                      onMouseEnter={() => setHoveredStackCard(lastStackCard)}
+                      onMouseLeave={() => setHoveredStackCard(null)}
+                    >
+                      <img
+                        src={
+                          lastStackCard.image_uris?.small ||
+                          lastStackCard.image_uris?.normal ||
+                          ""
+                        }
+                        alt={lastStackCard.name}
+                        style={{ width: "80px", borderRadius: "6px" }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -254,7 +270,7 @@ function handleDragStartStackCard(e, card) {
             />
           )}
 
-          {/* MODAL DA STACK GLOBAL (usa stack do jogador focado) */}
+          {/* MODAL DA STACK GLOBAL */}
           {showStackModal && (
             <div className="graveyard-modal-backdrop">
               <div className="graveyard-modal">
@@ -275,11 +291,13 @@ function handleDragStartStackCard(e, card) {
                   {stack.length === 0 ? (
                     <p className="board-helper">Nenhuma carta na pilha.</p>
                   ) : (
-                    stack.map((card) => (
+                    stack.map((card, index) => (
                       <div
-                        key={card.instanceId}
+                        key={card.instanceId || `${card.name}-${index}`}
                         className="board-zone-card"
                         title={card.name}
+                        onMouseEnter={() => setHoveredStackCard(card)}
+                        onMouseLeave={() => setHoveredStackCard(null)}
                       >
                         <img
                           src={
@@ -289,10 +307,10 @@ function handleDragStartStackCard(e, card) {
                           }
                           alt={card.name}
                           style={{
-                          width: "90px",          // <<< tamanho fixo pequeno
-                          borderRadius: "6px",
-                          display: "block",
-                        }}
+                            width: "90px",
+                            borderRadius: "6px",
+                            display: "block",
+                          }}
                         />
                       </div>
                     ))
@@ -303,6 +321,49 @@ function handleDragStartStackCard(e, card) {
           )}
         </div>
       </div>
+
+      {/* PREVIEW DA CARTA DA STACK NO CANTO DA TELA */}
+      {hoveredStackCard && (
+        <div
+          className="stack-preview-overlay"
+          style={{
+            position: "fixed",
+            right: "16px",
+            bottom: "16px",
+            zIndex: 9999,
+            pointerEvents: "none",
+          }}
+        >
+          <img
+            src={
+              hoveredStackCard.image_uris?.normal ||
+              hoveredStackCard.image_uris?.large ||
+              hoveredStackCard.image_uris?.small ||
+              ""
+            }
+            alt={hoveredStackCard.name}
+            style={{
+              width: "240px",
+              borderRadius: "12px",
+              boxShadow: "0 0 20px rgba(0,0,0,0.7)",
+              display: "block",
+            }}
+          />
+          <div
+            style={{
+              marginTop: "4px",
+              padding: "4px 8px",
+              borderRadius: "999px",
+              background: "rgba(0,0,0,0.8)",
+              color: "#fff",
+              fontSize: "0.8rem",
+              textAlign: "center",
+            }}
+          >
+            {hoveredStackCard.name}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -322,9 +383,9 @@ function SeatCard({
 
   return (
     <div
-      className={`seat-card ${vertical ? "seat-vertical" : "seat-horizontal"} ${
-        isFocused ? "seat-focused" : ""
-      }`}
+      className={`seat-card ${
+        vertical ? "seat-vertical" : "seat-horizontal"
+      } ${isFocused ? "seat-focused" : ""}`}
       onClick={player ? onClick : undefined}
     >
       <div className="seat-rect">
