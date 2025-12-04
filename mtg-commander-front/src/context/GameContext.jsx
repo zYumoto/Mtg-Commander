@@ -357,7 +357,7 @@ export function GameProvider({ children }) {
     moveCard,
     toggleTap,
     updateCardCounter,
-    stack,        // <<< pilha global disponível no contexto
+    stack,       
   };
 
   return (

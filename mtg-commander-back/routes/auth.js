@@ -13,16 +13,20 @@ const UserSchema = new mongoose.Schema(
   {
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
-
-    // Perfil básico
     nickname: { type: String, trim: true },
     fullName: { type: String, trim: true },
     avatarUrl: { type: String, trim: true },
-    bannerUrl: { type: String, trim: true }, // banner do perfil
+    bannerUrl: { type: String, trim: true },
     bio: { type: String, trim: true },
 
-    // Sistema simples de amigos (lista de IDs)
     friends: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
+    blocked: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
@@ -31,6 +35,7 @@ const UserSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
 
@@ -281,14 +286,19 @@ router.get("/friends", authRequired, async (req, res) => {
   try {
     const me = await User.findById(req.user._id)
       .populate("friends", "_id email nickname fullName avatarUrl bannerUrl")
+      .populate("blocked", "_id email nickname fullName avatarUrl bannerUrl")
       .lean();
 
-    res.json({ friends: me.friends || [] });
+    res.json({
+      friends: me.friends || [],
+      blocked: me.blocked || [],
+    });
   } catch (err) {
     console.error("Erro /friends GET:", err);
     res.status(500).json({ error: "Erro ao listar amigos" });
   }
 });
+
 
 // POST /auth/friends/add  { userId }
 router.post("/friends/add", authRequired, async (req, res) => {
@@ -341,6 +351,68 @@ router.post("/friends/add", authRequired, async (req, res) => {
     res.status(500).json({ error: "Erro ao adicionar amigo" });
   }
 });
+
+router.post("/block", authRequired, async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId é obrigatório" });
+    }
+
+    if (userId === String(req.user._id)) {
+      return res.status(400).json({ error: "Você não pode bloquear você mesmo" });
+    }
+
+    const other = await User.findById(userId);
+    if (!other) {
+      return res.status(404).json({ error: "Usuário não encontrado" });
+    }
+
+    const me = await User.findById(req.user._id);
+
+    // se ainda não estiver bloqueado, adiciona
+    if (!me.blocked.some((id) => String(id) === String(userId))) {
+      me.blocked.push(userId);
+    }
+
+    // opcional: remove da lista de amigos
+    me.friends = (me.friends || []).filter(
+      (id) => String(id) !== String(userId)
+    );
+
+    await me.save();
+
+    res.json({ message: "Usuário bloqueado" });
+  } catch (err) {
+    console.error("Erro /block:", err);
+    res.status(500).json({ error: "Erro ao bloquear usuário" });
+  }
+});
+
+router.post("/unblock", authRequired, async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId é obrigatório" });
+    }
+
+    const me = await User.findById(req.user._id);
+
+    me.blocked = (me.blocked || []).filter(
+      (id) => String(id) !== String(userId)
+    );
+
+    await me.save();
+
+    res.json({ message: "Usuário desbloqueado" });
+  } catch (err) {
+    console.error("Erro /unblock:", err);
+    res.status(500).json({ error: "Erro ao desbloquear usuário" });
+  }
+});
+
 
 // POST /auth/friends/remove  { userId }
 router.post("/friends/remove", authRequired, async (req, res) => {

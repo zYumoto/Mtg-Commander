@@ -1,5 +1,8 @@
+// src/components/CardSearch.jsx
 import { useState } from "react";
 import { useGame } from "../context/GameContext.jsx";
+
+const API_URL = "http://localhost:4000";
 
 function CardSearch() {
   const [query, setQuery] = useState("");
@@ -19,18 +22,21 @@ function CardSearch() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set("name", query);
+      params.set("fuzzy", query);          // <-- backend espera "fuzzy"
       if (collection) params.set("set", collection);
 
       const res = await fetch(
-        `http://localhost:4000/api/cards/search?${params.toString()}`
+        `${API_URL}/api/cards/named?${params.toString()}`
       );
+
       const data = await res.json();
       setCard(data);
     } catch (err) {
       console.error("Erro ao buscar carta:", err);
+      alert("Erro ao buscar carta no servidor.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   function handleAddToHand() {
@@ -42,7 +48,10 @@ function CardSearch() {
     <div className="form-card" style={{ marginTop: "1rem" }}>
       <h3>Buscar Carta</h3>
 
-      <form onSubmit={handleSearch} style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+      <form
+        onSubmit={handleSearch}
+        style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
+      >
         <input
           type="text"
           placeholder="Nome da carta..."
@@ -74,14 +83,9 @@ function CardSearch() {
           <option value="dsk">Duskmourn: House of Horror (DSK)</option>
           <option value="dsc">Duskmourn Commander (DSC)</option>
 
-          {/* The Lost Caverns of Ixalan */}
+          {/* Lost Caverns of Ixalan */}
           <option value="lci">The Lost Caverns of Ixalan (LCI)</option>
           <option value="lcc">Lost Caverns Commander (LCC)</option>
-
-          {/* Quando sair o código oficial de Edges of Eternity,
-              é só adicionar algo assim:
-              <option value="XXX">Edges of Eternity (XXX)</option>
-          */}
         </select>
 
         <button type="submit">Buscar</button>
@@ -94,7 +98,8 @@ function CardSearch() {
           <h4>{card.name}</h4>
           {card.set_name && (
             <p style={{ fontSize: "0.85rem", color: "#c5c5d5" }}>
-              Coleção: <strong>{card.set_name}</strong> ({card.set?.toUpperCase()})
+              Coleção: <strong>{card.set_name}</strong>{" "}
+              ({card.set?.toUpperCase()})
             </p>
           )}
 

@@ -1,27 +1,24 @@
+// src/components/PlayerBoard.jsx
 import React from "react";
-// garante que o caminho aqui bate com a pasta onde está seu GameContext
 import { useGame } from "../context/GameContext.jsx";
-// Se não estiver usando LifeCounter, pode remover essa linha:
- // import { LifeCounter } from "../components/LifeCounter";
 
 function PlayerBoard({ player }) {
   const { updatePlayerLife } = useGame();
 
-  // A mão vem DIRETO do backend (socket.io)
+  if (!player) return null;
+
   const hand = player.hand || [];
+  const battlefield = player.battlefield || [];
+  const graveyard = player.graveyard || [];
+  const exile = player.exile || [];
 
   const handleLifeChange = (delta) => {
-    console.log("🧪 Clique no life:", {
-      playerProp: player,
-      delta,
-    });
-
-    // Aqui usamos o NOME, que é o que o backend espera
     updatePlayerLife(player.name, delta);
   };
 
   return (
     <div className="player-board">
+      {/* Cabeçalho com nome + vida */}
       <div className="player-header">
         <h3>{player.name}</h3>
 
@@ -36,39 +33,23 @@ function PlayerBoard({ player }) {
         </div>
       </div>
 
-      {/* MÃO */}
-      <div className="zone">
-        <strong>Mão:</strong>
-
-        <div
-          className="hand-cards"
-          style={{
-            display: "flex",
-            gap: "8px",
-            marginTop: "8px",
-            overflowX: "auto",
-            paddingBottom: "8px",
-          }}
-        >
-          {hand.map((c) => (
-            <img
-              key={c.instanceId}
-              src={c.image_uris?.small}
-              alt={c.name}
-              title={c.name}
-              style={{
-                width: "80px",
-                borderRadius: "6px",
-              }}
-            />
-          ))}
-        </div>
-      </div>
+      {/* IMPORTANTE: NÃO mostrar a mão aqui */}
+      {/* A mão é privada e fica só no PlayerHud */}
+      {/* <div className="zone"> ... (REMOVIDO) ... </div> */}
 
       <div className="zones" style={{ marginTop: "1rem" }}>
-        <div className="zone">Campo</div>
-        <div className="zone">Cemitério</div>
-        <div className="zone">Exílio</div>
+        <div className="zone">
+          <strong>Permanentes em campo:</strong> {battlefield.length}
+        </div>
+        <div className="zone">
+          <strong>Cemitério:</strong> {graveyard.length}
+        </div>
+        <div className="zone">
+          <strong>Exílio:</strong> {exile.length}
+        </div>
+        <div className="zone">
+          <strong>Cartas na mão:</strong> {hand.length}
+        </div>
       </div>
     </div>
   );
