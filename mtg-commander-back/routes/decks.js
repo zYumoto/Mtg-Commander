@@ -59,7 +59,6 @@ router.get("/:id/resolved", async (req, res, next) => {
 
     const resolvedCards = [];
 
-    // resolve as 99 cartas da lista
     for (const card of deck.cards || []) {
       try {
         const response = await axios.get(

@@ -1,4 +1,3 @@
-// src/components/DeckPanel.jsx
 import React, { useEffect, useState } from "react";
 import { useGame } from "../context/GameContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -28,7 +27,7 @@ function DeckPanel() {
   const [loadingLoad, setLoadingLoad] = useState(false);
   const [error, setError] = useState("");
   const [showLibraryView, setShowLibraryView] = useState(false);
-  const [hasLoadedDeck, setHasLoadedDeck] = useState(false); // <<< NOVO
+  const [hasLoadedDeck, setHasLoadedDeck] = useState(false); 
 
   // pegar o player local na lista da sala
   const me = players.find((p) => p.name === playerName);

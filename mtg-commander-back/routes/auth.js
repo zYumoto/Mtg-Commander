@@ -169,7 +169,7 @@ router.get("/me", authRequired, async (req, res) => {
     nickname: u.nickname,
     fullName: u.fullName,
     avatarUrl: u.avatarUrl,
-    bannerUrl: u.bannerUrl, // <-- AQUI FALTAVA
+    bannerUrl: u.bannerUrl,
     bio: u.bio,
   });
 });
@@ -181,7 +181,6 @@ router.get("/me", authRequired, async (req, res) => {
 // PUT /auth/profile
 router.put("/profile", authRequired, async (req, res) => {
   try {
-    // bannerUrl incluído aqui
     const { nickname, fullName, avatarUrl, bannerUrl, bio } = req.body;
 
     if (nickname && nickname.length < 2) {
@@ -371,7 +370,6 @@ router.post("/block", authRequired, async (req, res) => {
 
     const me = await User.findById(req.user._id);
 
-    // se ainda não estiver bloqueado, adiciona
     if (!me.blocked.some((id) => String(id) === String(userId))) {
       me.blocked.push(userId);
     }
