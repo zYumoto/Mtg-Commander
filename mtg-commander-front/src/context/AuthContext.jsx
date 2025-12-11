@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext(null);
 
-const API_URL = "http://localhost:4000"; // URL do backend
+const API_URL = "https://mtg-commander-4k8m.onrender.com"; // URL do backend
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // {_id, email, nickname, fullName, avatarUrl, bio}

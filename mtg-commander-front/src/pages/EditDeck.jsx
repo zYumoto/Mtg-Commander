@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
-const API_URL = "http://localhost:4000";
+const API_URL = "https://mtg-commander-4k8m.onrender.com";
 
 // Converte o texto da lista em [{ name, quantity }]
 function parseDeckText(deckText) {

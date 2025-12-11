@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
-const API_URL = "http://localhost:4000";
+const API_URL = "https://mtg-commander-4k8m.onrender.com";
 
 function Decks() {
   const { token, isAuthenticated, loading } = useAuth();

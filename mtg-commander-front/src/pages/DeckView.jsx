@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
-const API_URL = "http://localhost:4000";
+const API_URL = "https://mtg-commander-4k8m.onrender.com";
 
 function DeckView() {
   const { id } = useParams();

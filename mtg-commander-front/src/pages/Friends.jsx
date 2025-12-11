@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
 
-const API_URL = "http://localhost:4000";
+const API_URL = "https://mtg-commander-4k8m.onrender.com";
 
 function Friends() {
   const { user, token } = useAuth();

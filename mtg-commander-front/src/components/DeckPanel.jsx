@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useGame } from "../context/GameContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
-const API_URL = "http://localhost:4000";
+const API_URL = "https://mtg-commander-4k8m.onrender.com";
 
 function DeckPanel() {
   const {
