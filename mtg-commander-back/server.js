@@ -84,12 +84,15 @@ const RoomModel = mongoose.model('Room', RoomSchema);
 // Socket.IO server
 // ======================
 
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+
 const io = new Server(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
+    origin: CLIENT_URL,
+    methods: ["GET", "POST"],
   },
 });
+
 
 
 // rooms em memória
