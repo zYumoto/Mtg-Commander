@@ -1,0 +1,122 @@
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+}
+
+/* fundo com blur + escurecido */
+.settings-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(5, 7, 14, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: default;
+}
+
+/* janela */
+.settings-window {
+  position: relative;
+  width: min(980px, 92vw);
+  height: min(620px, 86vh);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #1a2038, #12172a);
+  box-shadow: 0 30px 80px rgba(0,0,0,.55);
+  padding: 16px;
+}
+
+.settings-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #0f1426, #0b1020);
+  border: 1px solid rgba(46,56,120,.35);
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  overflow: hidden;
+}
+
+/* coluna esquerda */
+.settings-left {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-right: 1px solid rgba(46,56,120,.25);
+}
+
+.settings-title {
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(27,34,68,.9);
+  border: 1px solid rgba(80,95,190,.2);
+  font-weight: 750;
+}
+
+.settings-menu {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.settings-tab {
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(80,95,190,.2);
+  background: rgba(27,34,68,.75);
+  color: #e6e8ee;
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.settings-tab:hover {
+  background: rgba(38,48,106,.92);
+}
+
+.settings-tab.active {
+  background: linear-gradient(180deg, #3a6df0, #2f56c5);
+  border-color: rgba(120,160,255,.3);
+}
+
+.settings-close {
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(80,95,190,.2);
+  background: rgba(27,34,68,.9);
+  color: #e6e8ee;
+  cursor: pointer;
+  font-weight: 650;
+}
+
+/* coluna direita */
+.settings-right {
+  padding: 18px;
+}
+
+.settings-content {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  background: rgba(9,12,24,.55);
+  border: 1px solid rgba(46,56,120,.25);
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+.settings-content-title {
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.settings-content-hint {
+  font-size: 13px;
+  opacity: .75;
+}
