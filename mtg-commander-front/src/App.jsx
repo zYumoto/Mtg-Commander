@@ -12,35 +12,30 @@ import DeckView from "./pages/DeckView.jsx";
 import Profile from "./pages/Profile.jsx";
 import Friends from "./pages/Friends.jsx";
 
-import Header from "./components/Header.jsx";
-
 function RequireAuth({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
-  if (loading) return <div className="page-center">Carregando...</div>;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (loading) {
+    return <div className="page-center">Carregando...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   return children;
-}
-
-/** Layout COM header (pra todas as páginas que você quiser manter o topo) */
-function WithHeaderLayout({ children }) {
-  return (
-    <div className="app-container">
-      <Header />
-      <main className="app-main">{children}</main>
-    </div>
-  );
 }
 
 function AppInner() {
   const { isAuthenticated, loading } = useAuth();
 
-  if (loading) return <div className="page-center">Carregando...</div>;
+  if (loading) {
+    return <div className="page-center">Carregando...</div>;
+  }
 
   return (
     <Routes>
-      {/* Raiz: manda pro lobby se logado, senão login */}
+      {/* Raiz */}
       <Route
         path="/"
         element={
@@ -52,7 +47,11 @@ function AppInner() {
         }
       />
 
-      {/* Lobby SEM header (tela inteira) */}
+      {/* Auth */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+
+      {/* Lobby */}
       <Route
         path="/lobby"
         element={
@@ -62,54 +61,22 @@ function AppInner() {
         }
       />
 
-      {/* Room COM header */}
+      {/* Room */}
       <Route
         path="/room/:code"
         element={
           <RequireAuth>
-            <WithHeaderLayout>
-              <Room />
-            </WithHeaderLayout>
+            <Room />
           </RequireAuth>
         }
       />
 
-      {/* Auth SEM header */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-
-      {/* Perfil COM header */}
-      <Route
-        path="/profile"
-        element={
-          <RequireAuth>
-            <WithHeaderLayout>
-              <Profile />
-            </WithHeaderLayout>
-          </RequireAuth>
-        }
-      />
-
-      {/* Amigos COM header */}
-      <Route
-        path="/friends"
-        element={
-          <RequireAuth>
-            <WithHeaderLayout>
-              <Friends />
-            </WithHeaderLayout>
-          </RequireAuth>
-        }
-      />
-
-      {/* Decks COM header */}
+      {/* Decks */}
       <Route
         path="/decks"
         element={
           <RequireAuth>
-            <WithHeaderLayout>
-              <Decks />
-            </WithHeaderLayout>
+            <Decks />
           </RequireAuth>
         }
       />
@@ -117,9 +84,7 @@ function AppInner() {
         path="/decks/new"
         element={
           <RequireAuth>
-            <WithHeaderLayout>
-              <EditDeck />
-            </WithHeaderLayout>
+            <EditDeck />
           </RequireAuth>
         }
       />
@@ -127,9 +92,7 @@ function AppInner() {
         path="/decks/:id/edit"
         element={
           <RequireAuth>
-            <WithHeaderLayout>
-              <EditDeck />
-            </WithHeaderLayout>
+            <EditDeck />
           </RequireAuth>
         }
       />
@@ -137,14 +100,30 @@ function AppInner() {
         path="/decks/:id/view"
         element={
           <RequireAuth>
-            <WithHeaderLayout>
-              <DeckView />
-            </WithHeaderLayout>
+            <DeckView />
           </RequireAuth>
         }
       />
 
-      {/* fallback */}
+      {/* Perfil / Amigos */}
+      <Route
+        path="/profile"
+        element={
+          <RequireAuth>
+            <Profile />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/friends"
+        element={
+          <RequireAuth>
+            <Friends />
+          </RequireAuth>
+        }
+      />
+
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

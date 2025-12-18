@@ -1,0 +1,134 @@
+.rsb{
+  background: linear-gradient(180deg, #1a2038, #12172a);
+  border-radius: 22px;
+  padding: 14px;
+  box-sizing: border-box;
+  box-shadow: 0 18px 40px rgba(0,0,0,.35);
+  height: 100%;
+}
+
+.rsb__inner{
+  height: 100%;
+  background: linear-gradient(180deg, #0f1426, #0b1020);
+  border-radius: 18px;
+  padding: 14px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid rgba(46,56,120,.35);
+}
+
+.rsb__profileRow{
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.rsb__avatar{
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #f0c14b, #d19b2e);
+  color: #111;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+
+.rsb__nickPill{
+  height: 40px;
+  border-radius: 999px;
+  background: rgba(27,34,68,.9);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  border: 1px solid rgba(80,95,190,.2);
+  color: #e6e8ee;
+}
+
+.rsb__btn{
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(80,95,190,.2);
+  background: rgba(27,34,68,.9);
+  color: #e6e8ee;
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.rsb__btn:hover{
+  background: rgba(38,48,106,.95);
+}
+
+.rsb__btn.isActive{
+  background: linear-gradient(180deg, #3a6df0, #2f56c5);
+  border-color: rgba(120,160,255,.35);
+}
+
+.rsb__friendsBox{
+  flex: 1;
+  border-radius: 18px;
+  background: rgba(9, 12, 24, .55);
+  border: 1px solid rgba(46, 56, 120, .25);
+  padding: 14px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.rsb__friendsHeader{
+  font-weight: 750;
+  font-size: 13px;
+  opacity: .95;
+}
+
+.rsb__friendsEmpty{
+  font-size: 12px;
+  opacity: .7;
+}
+
+.rsb__friendsList{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.rsb__friendsList::-webkit-scrollbar { width: 10px; }
+.rsb__friendsList::-webkit-scrollbar-thumb {
+  background: rgba(120,140,255,.18);
+  border-radius: 999px;
+}
+.rsb__friendsList::-webkit-scrollbar-track { background: transparent; }
+
+.rsb__friendRow{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(27,34,68,.35);
+  border: 1px solid rgba(80,95,190,.14);
+}
+
+.rsb__dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #35d07f;
+  box-shadow: 0 0 0 3px rgba(53,208,127,.12);
+}
+
+.rsb__friendName{
+  font-size: 12px;
+  opacity: .9;
+}
+
+.rsb__settings{
+  margin-top: auto;
+}

@@ -1,25 +1,26 @@
 import React, { useMemo, useState } from "react";
 import "./LobbyFull.css";
+import RightSidebar from "../components/RightSidebar.jsx";
 import SettingsModal from "../components/SettingsModal.jsx";
+import DecksModal from "../components/DecksModal.jsx";
 
 export default function Lobby() {
   const [search, setSearch] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [decksOpen, setDecksOpen] = useState(false);
 
   const rooms = [];
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return rooms;
-    return rooms.filter((r) => (r.name || "").toLowerCase().includes(q));
+    return rooms.filter((r) =>
+      (r.name || "").toLowerCase().includes(q)
+    );
   }, [rooms, search]);
 
   function onCreateRoom() {
     console.log("create room");
-  }
-
-  function onOpenDecks() {
-    console.log("open decks");
   }
 
   return (
@@ -39,7 +40,10 @@ export default function Lobby() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
 
-                <button className="lobbyfull__createBtn" onClick={onCreateRoom}>
+                <button
+                  className="lobbyfull__createBtn"
+                  onClick={onCreateRoom}
+                >
                   CRIAR SALA
                 </button>
               </div>
@@ -59,8 +63,13 @@ export default function Lobby() {
                 ) : (
                   <div className="lobbyfull__roomsGrid">
                     {filtered.map((room) => (
-                      <button key={room.id} className="lobbyfull__roomCard">
-                        <div className="lobbyfull__roomTitle">{room.name}</div>
+                      <button
+                        key={room.id}
+                        className="lobbyfull__roomCard"
+                      >
+                        <div className="lobbyfull__roomTitle">
+                          {room.name}
+                        </div>
                         <div className="lobbyfull__roomOwner">
                           dono: {room.owner}
                         </div>
@@ -76,39 +85,26 @@ export default function Lobby() {
           </main>
 
           {/* SIDEBAR */}
-          <aside className="lobbyfull__side">
-            <div className="lobbyfull__sideInner">
-              <div className="lobbyfull__profileRow">
-                <div className="lobbyfull__avatar">OT</div>
-                <div className="lobbyfull__nickPill">NICKNAME</div>
-              </div>
-
-              <button className="lobbyfull__sideBtn" onClick={onOpenDecks}>
-                MEUS DECKS
-              </button>
-
-              <div className="lobbyfull__friendsBox">
-                <div className="lobbyfull__friendsHeader">Amigos</div>
-                <div className="lobbyfull__friendsEmpty">
-                  Nenhum amigo online
-                </div>
-              </div>
-
-              <button
-                className="lobbyfull__settingsBtn"
-                onClick={() => setSettingsOpen(true)}
-              >
-                CONFIGURAÇÕES
-              </button>
-            </div>
-          </aside>
+          <RightSidebar
+            active="lobby"
+            nickname="NICKNAME"
+            avatarText="OT"
+            friends={[]}
+            onOpenDecks={() => setDecksOpen(true)}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
         </div>
       </div>
 
-      {/* Modal fora da sidebar (overlay por cima de tudo) */}
+      {/* MODAIS */}
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+      />
+
+      <DecksModal
+        open={decksOpen}
+        onClose={() => setDecksOpen(false)}
       />
     </div>
   );

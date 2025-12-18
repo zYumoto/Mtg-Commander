@@ -1,0 +1,126 @@
+.deckspage {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #151a2d 0%, #0b0f1a 60%);
+  display: flex;
+  justify-content: center;
+}
+
+.deckspage__wrap {
+  width: 100%;
+  max-width: 1700px;
+  padding: 18px;
+}
+
+.deckspage__grid {
+  display: grid;
+  grid-template-columns: 1fr 330px;
+  gap: 18px;
+}
+
+/* MAIN */
+.deckspage__main {
+  background: linear-gradient(180deg, #1a2038, #12172a);
+  border-radius: 22px;
+  padding: 16px;
+}
+
+.deckspage__mainInner {
+  height: 100%;
+  background: linear-gradient(180deg, #0f1426, #0b1020);
+  border-radius: 18px;
+  padding: 16px;
+  position: relative;
+}
+
+.deckspage__titlePill {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 56px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #2b3674, #1c244d);
+  font-weight: 700;
+}
+
+/* CONTENT */
+.deckspage__content {
+  margin-top: 64px;
+  height: calc(100% - 80px);
+}
+
+/* DECK GRID */
+.deckspage__gridCards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.deckspage__deckCard {
+  height: 120px;
+  background: linear-gradient(180deg, #1b2244, #141a35);
+  border-radius: 16px;
+  border: 1px solid rgba(80,95,190,.25);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+
+.deckspage__deckCard:hover {
+  transform: translateY(-3px);
+}
+
+.deckspage__commanderSlot {
+  width: 64px;
+  height: 88px;
+  border-radius: 8px;
+  background: rgba(0,0,0,.35);
+}
+
+.deckspage__deckName {
+  font-weight: 700;
+}
+
+/* EMPTY */
+.deckspage__empty {
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.deckspage__emptyCard {
+  padding: 18px;
+  border-radius: 16px;
+  background: rgba(27,34,68,.6);
+  text-align: center;
+}
+
+/* SIDEBAR (igual lobby) */
+.deckspage__side {
+  background: linear-gradient(180deg, #1a2038, #12172a);
+  border-radius: 22px;
+  padding: 14px;
+}
+
+.deckspage__sideInner {
+  height: 100%;
+  background: linear-gradient(180deg, #0f1426, #0b1020);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* responsivo */
+@media (max-width: 1100px) {
+  .deckspage__grid {
+    grid-template-columns: 1fr;
+  }
+  .deckspage__gridCards {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+}
