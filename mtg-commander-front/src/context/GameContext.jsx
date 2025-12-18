@@ -22,6 +22,9 @@ export function GameProvider({ children }) {
   // comandante local (para HUD e DeckPanel)
   const [commanderCard, setCommanderCardState] = useState(null);
 
+  // ===== LOBBY: salas públicas =====
+  const [publicRooms, setPublicRooms] = useState([]);
+
   // ===== Commander: salva local + avisa servidor =====
   function setCommanderCard(card) {
     setCommanderCardState(card);
@@ -66,14 +69,23 @@ export function GameProvider({ children }) {
       console.log("🧱 room-state recebido, stack =", state.stack);
     }
 
+    function onRoomsList(list) {
+      setPublicRooms(Array.isArray(list) ? list : []);
+    }
+
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("room-state", onRoomState);
+
+    // lobby
+    socket.on("rooms-list", onRoomsList);
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("room-state", onRoomState);
+
+      socket.off("rooms-list", onRoomsList);
     };
   }, []);
 
@@ -83,7 +95,26 @@ export function GameProvider({ children }) {
     }
   }
 
+  // ======================
+  // LOBBY: listar / criar sala
+  // ======================
+  function fetchRooms() {
+    connectSocketIfNeeded();
+    socket.emit("list-rooms");
+  }
+
+  function createRoom({ roomName, roomCode, isPublic }) {
+    connectSocketIfNeeded();
+    socket.emit("create-room", {
+      roomName,
+      roomCode,
+      isPublic,
+    });
+  }
+
+  // ======================
   // Entrar na sala
+  // ======================
   function joinRoom({ name, room }) {
     if (!name || !room) return;
     connectSocketIfNeeded();
@@ -96,7 +127,9 @@ export function GameProvider({ children }) {
     });
   }
 
-  // Atualizar vida via backend
+  // ======================
+  // Gameplay
+  // ======================
   function updatePlayerLife(name, delta) {
     if (!roomCode || !name) return;
 
@@ -107,7 +140,6 @@ export function GameProvider({ children }) {
     });
   }
 
-  // Enviar mensagem de chat
   function sendMessage(text) {
     if (!roomCode || !playerName) return;
 
@@ -121,7 +153,6 @@ export function GameProvider({ children }) {
     });
   }
 
-  // Adicionar carta na mão via backend
   function addCardToHand(card) {
     if (!roomCode || !playerName || !card) return;
 
@@ -132,7 +163,6 @@ export function GameProvider({ children }) {
     });
   }
 
-  // Mover carta entre zonas (hand, battlefield, lands, graveyard, exile, stack)
   function moveCard({ cardInstanceId, fromZone, toZone }) {
     if (!roomCode || !playerName || !cardInstanceId || !fromZone || !toZone) return;
     if (fromZone === toZone) return;
@@ -146,7 +176,6 @@ export function GameProvider({ children }) {
     });
   }
 
-  // Tap / Untap de uma carta em uma zona (ex: battlefield)
   function toggleTap(cardInstanceId, zone) {
     if (!roomCode || !playerName || !cardInstanceId || !zone) return;
 
@@ -173,8 +202,6 @@ export function GameProvider({ children }) {
   // =======================
   //  LÓGICA DO DECK LOCAL
   // =======================
-
-  // recebe as cartas resolvidas (com quantity) e monta o deck
   function setDeckFromResolved(resolvedCards) {
     if (!resolvedCards || resolvedCards.length === 0) {
       setLibrary([]);
@@ -193,7 +220,6 @@ export function GameProvider({ children }) {
       }
     });
 
-    // embaralha (Fisher–Yates)
     for (let i = expanded.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [expanded[i], expanded[j]] = [expanded[j], expanded[i]];
@@ -202,7 +228,6 @@ export function GameProvider({ children }) {
     setLibrary(expanded);
   }
 
-  // Comprar N cartas do topo do deck → vão pra mão (via socket)
   function drawCards(count) {
     if (!count || count <= 0) return;
 
@@ -221,7 +246,6 @@ export function GameProvider({ children }) {
     });
   }
 
-  // Embaralhar somente o que restou no deck
   function shuffleLibrary() {
     setLibrary((prev) => {
       const arr = [...prev];
@@ -233,7 +257,6 @@ export function GameProvider({ children }) {
     });
   }
 
-  // Tutor: escolhe 1 carta do deck, manda para a mão e embaralha o resto
   function tutorFromLibrary(instanceId) {
     if (!instanceId) return;
 
@@ -270,13 +293,10 @@ export function GameProvider({ children }) {
   // =======================
   //  NOVAS FUNÇÕES: MULLIGAN
   // =======================
-
-  // helper pra achar "eu" nos players
   function getMe() {
     return players.find((p) => p.name === playerName);
   }
 
-  // pedir pro servidor esvaziar minha mão
   function clearHandOnServer() {
     if (!roomCode || !playerName) return;
 
@@ -286,7 +306,6 @@ export function GameProvider({ children }) {
     });
   }
 
-  // devolver a mão pro deck e só isso
   function returnHandToLibrary() {
     const me = getMe();
     if (!me || !me.hand || me.hand.length === 0) return;
@@ -306,7 +325,6 @@ export function GameProvider({ children }) {
     clearHandOnServer();
   }
 
-  // mulligan: devolve mão, embaralha tudo, limpa no server e compra 7 de novo
   function mulligan() {
     const me = getMe();
     if (!me || !me.hand || me.hand.length === 0) return;
@@ -325,7 +343,6 @@ export function GameProvider({ children }) {
 
     clearHandOnServer();
 
-    // compra 7 novas
     drawCards(7);
   }
 
@@ -339,30 +356,45 @@ export function GameProvider({ children }) {
     players,
     messages,
     connected,
+
+    // lobby
+    publicRooms,
+    fetchRooms,
+    createRoom,
+
+    // sala/gameplay
     joinRoom,
     updatePlayerLife,
     sendMessage,
     addCardToHand,
+
+    // deck
     library,
     librarySize,
     setDeckFromResolved,
     drawCards,
     shuffleLibrary,
     tutorFromLibrary,
+
+    // commander
     setCommanderCard,
     castCommander,
     commanderCard,
+
+    // mulligan
     returnHandToLibrary,
     mulligan,
+
+    // board actions
     moveCard,
     toggleTap,
     updateCardCounter,
-    stack,       
+
+    // global stack
+    stack,
   };
 
-  return (
-    <GameContext.Provider value={value}>{children}</GameContext.Provider>
-  );
+  return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }
 
 export function useGame() {
