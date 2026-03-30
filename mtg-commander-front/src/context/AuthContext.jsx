@@ -1,8 +1,8 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { API_URL } from "../config.js";
 
 const AuthContext = createContext(null);
-
-const API_URL = "https://mtg-commander-4k8m.onrender.com"; // URL do backend
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // {_id, email, nickname, fullName, avatarUrl, bio}
@@ -115,7 +115,7 @@ export function AuthProvider({ children }) {
     let data = {};
     try {
       data = text ? JSON.parse(text) : {};
-    } catch (e) {
+    } catch {
       console.error("Resposta não-JSON em /auth/profile:", text);
       throw new Error("Resposta inválida do servidor ao atualizar perfil");
     }

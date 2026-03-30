@@ -19,10 +19,7 @@ function Login() {
 
     try {
       await login(email, password);
-      // depois do login, podemos usar o nickname como playerName
-      // mas isso depende do /auth/me; vamos pegar depois no Header
-      // por enquanto só manda pro lobby:
-      setPlayerName(""); // opcional limpar; depois podemos setar com nickname
+      setPlayerName("");
       navigate("/lobby");
     } catch (err) {
       setError(err.message);
@@ -67,7 +64,11 @@ function Login() {
       </form>
 
       <p style={{ marginTop: "0.75rem", fontSize: "0.9rem" }}>
-        Não tem conta? <Link to="/register">Registrar</Link>
+        <Link to="/forgot-password">Esqueci minha senha</Link>
+      </p>
+
+      <p style={{ marginTop: "0.75rem", fontSize: "0.9rem" }}>
+        Nao tem conta? <Link to="/register">Registrar</Link>
       </p>
     </section>
   );

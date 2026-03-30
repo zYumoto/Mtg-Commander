@@ -1,13 +1,12 @@
+const crypto = require("crypto");
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
+const memoryDb = require("../store/memoryDb");
+const { sendMail } = require("../utils/mailer");
 
 const router = express.Router();
-
-// =======================================
-//  SCHEMA / MODEL DE USUÁRIO
-// =======================================
 
 const UserSchema = new mongoose.Schema(
   {
@@ -18,39 +17,85 @@ const UserSchema = new mongoose.Schema(
     avatarUrl: { type: String, trim: true },
     bannerUrl: { type: String, trim: true },
     bio: { type: String, trim: true },
-
-    friends: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
-
-    blocked: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
+    resetPasswordTokenHash: { type: String, default: "" },
+    resetPasswordExpiresAt: { type: Date, default: null },
+    friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    blocked: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   { timestamps: true }
 );
 
-
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
-
-// =======================================
-//  UTILS
-// =======================================
-
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
+const RESET_TOKEN_TTL_MS = 1000 * 60 * 15;
+
+function isMongoReady() {
+  return mongoose.connection.readyState === 1;
+}
+
+function buildUserPayload(user) {
+  return {
+    _id: user._id,
+    email: user.email,
+    nickname: user.nickname,
+    fullName: user.fullName,
+    avatarUrl: user.avatarUrl,
+    bannerUrl: user.bannerUrl,
+    bio: user.bio,
+  };
+}
 
 function generateToken(user) {
-  return jwt.sign(
-    { id: user._id, email: user.email },
-    JWT_SECRET,
-    { expiresIn: "7d" }
-  );
+  return jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
+    expiresIn: "7d",
+  });
+}
+
+function hashResetToken(rawToken) {
+  return crypto.createHash("sha256").update(rawToken).digest("hex");
+}
+
+function buildResetLink(rawToken) {
+  const baseUrl =
+    process.env.FRONTEND_URL ||
+    process.env.CLIENT_URL ||
+    "http://localhost:5173";
+
+  return `${baseUrl.replace(/\/$/, "")}/reset-password?token=${encodeURIComponent(
+    rawToken
+  )}`;
+}
+
+async function findUserByEmail(email) {
+  return isMongoReady()
+    ? User.findOne({ email })
+    : memoryDb.findUserByEmail(email);
+}
+
+async function findUserById(id) {
+  return isMongoReady() ? User.findById(id) : memoryDb.findUserById(id);
+}
+
+async function findUserByResetToken(rawToken) {
+  const tokenHash = hashResetToken(rawToken);
+
+  if (isMongoReady()) {
+    return User.findOne({
+      resetPasswordTokenHash: tokenHash,
+      resetPasswordExpiresAt: { $gt: new Date() },
+    });
+  }
+
+  return memoryDb.findUserByResetTokenHash(tokenHash);
+}
+
+async function persistUser(user) {
+  if (isMongoReady()) {
+    await user.save();
+    return user;
+  }
+
+  return memoryDb.saveUser(user);
 }
 
 async function authRequired(req, res, next) {
@@ -64,121 +109,153 @@ async function authRequired(req, res, next) {
 
   try {
     const data = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(data.id);
+    const user = await findUserById(data.id);
+
     if (!user) {
-      return res.status(401).json({ error: "Usuário não encontrado" });
+      return res.status(401).json({ error: "Usuario nao encontrado" });
     }
 
     req.user = user;
     next();
   } catch (err) {
     console.error("Erro authRequired:", err);
-    return res.status(401).json({ error: "Token inválido" });
+    return res.status(401).json({ error: "Token invalido" });
   }
 }
 
-// =======================================
-//  AUTH BÁSICO
-// =======================================
-
-// POST /auth/register
 router.post("/register", async (req, res) => {
   try {
     const { email, password, nickname } = req.body;
 
     if (!email || !password) {
-      return res
-        .status(400)
-        .json({ error: "Email e senha são obrigatórios" });
+      return res.status(400).json({ error: "Email e senha sao obrigatorios" });
     }
 
-    const existing = await User.findOne({ email });
+    const existing = await findUserByEmail(email);
     if (existing) {
-      return res.status(400).json({ error: "Email já cadastrado" });
+      return res.status(400).json({ error: "Email ja cadastrado" });
     }
 
     const hash = await bcrypt.hash(password, 10);
-
-    const user = await User.create({
-      email,
-      password: hash,
-      nickname: nickname || email.split("@")[0],
-    });
+    const user = isMongoReady()
+      ? await User.create({
+          email,
+          password: hash,
+          nickname: nickname || email.split("@")[0],
+        })
+      : memoryDb.createUser({ email, password: hash, nickname });
 
     const token = generateToken(user);
-
-    res.json({
-      token,
-      user: {
-        _id: user._id,
-        email: user.email,
-        nickname: user.nickname,
-        fullName: user.fullName,
-        avatarUrl: user.avatarUrl,
-        bannerUrl: user.bannerUrl,
-        bio: user.bio,
-      },
-    });
+    res.json({ token, user: buildUserPayload(user) });
   } catch (err) {
     console.error("Erro /register:", err);
     res.status(500).json({ error: "Erro ao registrar" });
   }
 });
 
-// POST /auth/login
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    const user = await findUserByEmail(email);
 
-    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ error: "Credenciais inválidas" });
+      return res.status(401).json({ error: "Credenciais invalidas" });
     }
 
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) {
-      return res.status(401).json({ error: "Credenciais inválidas" });
+      return res.status(401).json({ error: "Credenciais invalidas" });
     }
 
     const token = generateToken(user);
-
-    res.json({
-      token,
-      user: {
-        _id: user._id,
-        email: user.email,
-        nickname: user.nickname,
-        fullName: user.fullName,
-        avatarUrl: user.avatarUrl,
-        bannerUrl: user.bannerUrl,
-        bio: user.bio,
-      },
-    });
+    res.json({ token, user: buildUserPayload(user) });
   } catch (err) {
     console.error("Erro /login:", err);
     res.status(500).json({ error: "Erro ao fazer login" });
   }
 });
 
-// GET /auth/me
-router.get("/me", authRequired, async (req, res) => {
-  const u = req.user;
-  res.json({
-    _id: u._id,
-    email: u.email,
-    nickname: u.nickname,
-    fullName: u.fullName,
-    avatarUrl: u.avatarUrl,
-    bannerUrl: u.bannerUrl,
-    bio: u.bio,
-  });
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ error: "Informe o email cadastrado" });
+    }
+
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.json({
+        message:
+          "Se o email existir na base, enviaremos um link de recuperacao.",
+      });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordTokenHash = hashResetToken(rawToken);
+    user.resetPasswordExpiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+    await persistUser(user);
+
+    const resetLink = buildResetLink(rawToken);
+    await sendMail({
+      to: user.email,
+      subject: "Recuperacao de senha - Commander Online",
+      text: `Recebemos um pedido para redefinir sua senha.\n\nUse este link por ate 15 minutos:\n${resetLink}\n\nSe voce nao pediu essa troca, ignore este email.`,
+      html: `<p>Recebemos um pedido para redefinir sua senha.</p><p>Use este link por ate 15 minutos:</p><p><a href="${resetLink}">${resetLink}</a></p><p>Se voce nao pediu essa troca, ignore este email.</p>`,
+    });
+
+    const response = {
+      message:
+        "Se o email existir na base, enviaremos um link de recuperacao.",
+    };
+
+    if (process.env.NODE_ENV !== "production" && !process.env.SMTP_HOST) {
+      response.devResetLink = resetLink;
+    }
+
+    res.json(response);
+  } catch (err) {
+    console.error("Erro /forgot-password:", err);
+    res.status(500).json({ error: "Erro ao solicitar recuperacao de senha" });
+  }
 });
 
-// =======================================
-//  PERFIL
-// =======================================
+router.post("/reset-password", async (req, res) => {
+  try {
+    const rawToken = String(req.body?.token || "").trim();
+    const newPassword = String(req.body?.newPassword || "");
 
-// PUT /auth/profile
+    if (!rawToken || !newPassword) {
+      return res
+        .status(400)
+        .json({ error: "Token e nova senha sao obrigatorios" });
+    }
+
+    if (newPassword.length < 4) {
+      return res.status(400).json({ error: "Nova senha muito curta" });
+    }
+
+    const user = await findUserByResetToken(rawToken);
+    if (!user) {
+      return res.status(400).json({ error: "Link invalido ou expirado" });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetPasswordTokenHash = "";
+    user.resetPasswordExpiresAt = null;
+    await persistUser(user);
+
+    res.json({ message: "Senha redefinida com sucesso" });
+  } catch (err) {
+    console.error("Erro /reset-password:", err);
+    res.status(500).json({ error: "Erro ao redefinir senha" });
+  }
+});
+
+router.get("/me", authRequired, async (req, res) => {
+  res.json(buildUserPayload(req.user));
+});
+
 router.put("/profile", authRequired, async (req, res) => {
   try {
     const { nickname, fullName, avatarUrl, bannerUrl, bio } = req.body;
@@ -189,30 +266,20 @@ router.put("/profile", authRequired, async (req, res) => {
         .json({ error: "Apelido deve ter pelo menos 2 caracteres" });
     }
 
-    req.user.nickname  = nickname  ?? req.user.nickname;
-    req.user.fullName  = fullName  ?? req.user.fullName;
+    req.user.nickname = nickname ?? req.user.nickname;
+    req.user.fullName = fullName ?? req.user.fullName;
     req.user.avatarUrl = avatarUrl ?? req.user.avatarUrl;
-    req.user.bannerUrl = bannerUrl ?? req.user.bannerUrl; // <-- AQUI TAMBÉM
-    req.user.bio       = bio       ?? req.user.bio;
+    req.user.bannerUrl = bannerUrl ?? req.user.bannerUrl;
+    req.user.bio = bio ?? req.user.bio;
 
-    await req.user.save();
-
-    res.json({
-      _id: req.user._id,
-      email: req.user.email,
-      nickname: req.user.nickname,
-      fullName: req.user.fullName,
-      avatarUrl: req.user.avatarUrl,
-      bannerUrl: req.user.bannerUrl,
-      bio: req.user.bio,
-    });
+    req.user = await persistUser(req.user);
+    res.json(buildUserPayload(req.user));
   } catch (err) {
     console.error("Erro /profile:", err);
     res.status(500).json({ error: "Erro ao atualizar perfil" });
   }
 });
 
-// POST /auth/change-password
 router.post("/change-password", authRequired, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -224,20 +291,18 @@ router.post("/change-password", authRequired, async (req, res) => {
     }
 
     const ok = await bcrypt.compare(currentPassword, req.user.password);
-
     if (!ok) {
       return res.status(401).json({ error: "Senha atual incorreta" });
     }
 
     if (newPassword.length < 4) {
-      return res
-        .status(400)
-        .json({ error: "Nova senha muito curta" });
+      return res.status(400).json({ error: "Nova senha muito curta" });
     }
 
-    const hash = await bcrypt.hash(newPassword, 10);
-    req.user.password = hash;
-    await req.user.save();
+    req.user.password = await bcrypt.hash(newPassword, 10);
+    req.user.resetPasswordTokenHash = "";
+    req.user.resetPasswordExpiresAt = null;
+    req.user = await persistUser(req.user);
 
     res.json({ message: "Senha alterada com sucesso" });
   } catch (err) {
@@ -246,108 +311,118 @@ router.post("/change-password", authRequired, async (req, res) => {
   }
 });
 
-// =======================================
-//  BUSCA DE USUÁRIOS (PARA AMIGOS)
-// =======================================
-
-// GET /auth/users/search?q=...
 router.get("/users/search", authRequired, async (req, res) => {
   try {
-    const q = (req.query.q || "").trim();
-
+    const q = String(req.query.q || "").trim();
     if (!q) {
       return res.json({ users: [] });
     }
 
-    const regex = new RegExp(q, "i");
+    if (isMongoReady()) {
+      const regex = new RegExp(q, "i");
+      const users = await User.find({
+        _id: { $ne: req.user._id },
+        $or: [{ email: regex }, { nickname: regex }, { fullName: regex }],
+      })
+        .select("_id email nickname fullName avatarUrl bannerUrl")
+        .limit(20)
+        .lean();
 
-    const users = await User.find({
-      _id: { $ne: req.user._id },
-      $or: [{ email: regex }, { nickname: regex }, { fullName: regex }],
-    })
-      .select("_id email nickname fullName avatarUrl bannerUrl")
-      .limit(20)
-      .lean();
+      return res.json({ users });
+    }
 
-    res.json({ users });
+    res.json({ users: memoryDb.searchUsers(req.user._id, q) });
   } catch (err) {
     console.error("Erro /users/search:", err);
-    res.status(500).json({ error: "Erro ao buscar usuários" });
+    res.status(500).json({ error: "Erro ao buscar usuarios" });
   }
 });
 
-// =======================================
-//  AMIGOS (SIMPLES)
-// =======================================
-
-// GET /auth/friends
 router.get("/friends", authRequired, async (req, res) => {
   try {
-    const me = await User.findById(req.user._id)
-      .populate("friends", "_id email nickname fullName avatarUrl bannerUrl")
-      .populate("blocked", "_id email nickname fullName avatarUrl bannerUrl")
-      .lean();
+    if (isMongoReady()) {
+      const me = await User.findById(req.user._id)
+        .populate("friends", "_id email nickname fullName avatarUrl bannerUrl")
+        .populate("blocked", "_id email nickname fullName avatarUrl bannerUrl")
+        .lean();
 
-    res.json({
-      friends: me.friends || [],
-      blocked: me.blocked || [],
-    });
+      return res.json({
+        friends: me?.friends || [],
+        blocked: me?.blocked || [],
+      });
+    }
+
+    res.json(memoryDb.getFriendsPayload(req.user._id));
   } catch (err) {
     console.error("Erro /friends GET:", err);
     res.status(500).json({ error: "Erro ao listar amigos" });
   }
 });
 
-
-// POST /auth/friends/add  { userId }
 router.post("/friends/add", authRequired, async (req, res) => {
   try {
     const { userId } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ error: "userId é obrigatório" });
+      return res.status(400).json({ error: "userId e obrigatorio" });
     }
 
-    if (userId === String(req.user._id)) {
+    if (String(userId) === String(req.user._id)) {
       return res
         .status(400)
-        .json({ error: "Você não pode adicionar você mesmo" });
+        .json({ error: "Voce nao pode adicionar voce mesmo" });
     }
 
-    const other = await User.findById(userId);
+    const other = await findUserById(userId);
     if (!other) {
-      return res.status(404).json({ error: "Usuário não encontrado" });
+      return res.status(404).json({ error: "Usuario nao encontrado" });
     }
 
-    const me = await User.findById(req.user._id);
-
-    const alreadyFriend = me.friends.some(
-      (f) => String(f) === String(other._id)
-    );
-    if (alreadyFriend) {
-      return res.status(400).json({ error: "Já é seu amigo" });
+    const me = await findUserById(req.user._id);
+    if (me.friends.some((friendId) => String(friendId) === String(other._id))) {
+      return res.status(400).json({ error: "Ja e seu amigo" });
     }
 
     me.friends.push(other._id);
     other.friends.push(me._id);
 
-    await me.save();
-    await other.save();
+    await persistUser(me);
+    await persistUser(other);
 
     res.json({
       message: "Amigo adicionado com sucesso",
-      friend: {
-        _id: other._id,
-        email: other.email,
-        nickname: other.nickname,
-        fullName: other.fullName,
-        avatarUrl: other.avatarUrl,
-        bannerUrl: other.bannerUrl,
-      },
+      friend: buildUserPayload(other),
     });
   } catch (err) {
     console.error("Erro /friends/add:", err);
     res.status(500).json({ error: "Erro ao adicionar amigo" });
+  }
+});
+
+router.post("/friends/remove", authRequired, async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId e obrigatorio" });
+    }
+
+    const other = await findUserById(userId);
+    if (!other) {
+      return res.status(404).json({ error: "Usuario nao encontrado" });
+    }
+
+    const me = await findUserById(req.user._id);
+    me.friends = me.friends.filter((id) => String(id) !== String(other._id));
+    other.friends = other.friends.filter((id) => String(id) !== String(me._id));
+
+    await persistUser(me);
+    await persistUser(other);
+
+    res.json({ message: "Amizade removida" });
+  } catch (err) {
+    console.error("Erro /friends/remove:", err);
+    res.status(500).json({ error: "Erro ao remover amigo" });
   }
 });
 
@@ -356,35 +431,35 @@ router.post("/block", authRequired, async (req, res) => {
     const { userId } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ error: "userId é obrigatório" });
+      return res.status(400).json({ error: "userId e obrigatorio" });
     }
 
-    if (userId === String(req.user._id)) {
-      return res.status(400).json({ error: "Você não pode bloquear você mesmo" });
+    if (String(userId) === String(req.user._id)) {
+      return res
+        .status(400)
+        .json({ error: "Voce nao pode bloquear voce mesmo" });
     }
 
-    const other = await User.findById(userId);
+    const other = await findUserById(userId);
     if (!other) {
-      return res.status(404).json({ error: "Usuário não encontrado" });
+      return res.status(404).json({ error: "Usuario nao encontrado" });
     }
 
-    const me = await User.findById(req.user._id);
-
-    if (!me.blocked.some((id) => String(id) === String(userId))) {
-      me.blocked.push(userId);
+    const me = await findUserById(req.user._id);
+    if (!me.blocked.some((id) => String(id) === String(other._id))) {
+      me.blocked.push(other._id);
     }
 
-    // opcional: remove da lista de amigos
-    me.friends = (me.friends || []).filter(
-      (id) => String(id) !== String(userId)
-    );
+    me.friends = me.friends.filter((id) => String(id) !== String(other._id));
+    other.friends = other.friends.filter((id) => String(id) !== String(me._id));
 
-    await me.save();
+    await persistUser(me);
+    await persistUser(other);
 
-    res.json({ message: "Usuário bloqueado" });
+    res.json({ message: "Usuario bloqueado" });
   } catch (err) {
     console.error("Erro /block:", err);
-    res.status(500).json({ error: "Erro ao bloquear usuário" });
+    res.status(500).json({ error: "Erro ao bloquear usuario" });
   }
 });
 
@@ -393,56 +468,17 @@ router.post("/unblock", authRequired, async (req, res) => {
     const { userId } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ error: "userId é obrigatório" });
+      return res.status(400).json({ error: "userId e obrigatorio" });
     }
 
-    const me = await User.findById(req.user._id);
+    const me = await findUserById(req.user._id);
+    me.blocked = me.blocked.filter((id) => String(id) !== String(userId));
 
-    me.blocked = (me.blocked || []).filter(
-      (id) => String(id) !== String(userId)
-    );
-
-    await me.save();
-
-    res.json({ message: "Usuário desbloqueado" });
+    await persistUser(me);
+    res.json({ message: "Usuario desbloqueado" });
   } catch (err) {
     console.error("Erro /unblock:", err);
-    res.status(500).json({ error: "Erro ao desbloquear usuário" });
-  }
-});
-
-
-// POST /auth/friends/remove  { userId }
-router.post("/friends/remove", authRequired, async (req, res) => {
-  try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: "userId é obrigatório" });
-    }
-
-    const other = await User.findById(userId);
-    if (!other) {
-      return res.status(404).json({ error: "Usuário não encontrado" });
-    }
-
-    const me = await User.findById(req.user._id);
-
-    me.friends = (me.friends || []).filter(
-      (id) => String(id) !== String(other._id)
-    );
-
-    other.friends = (other.friends || []).filter(
-      (id) => String(id) !== String(me._id)
-    );
-
-    await me.save();
-    await other.save();
-
-    res.json({ message: "Amizade removida" });
-  } catch (err) {
-    console.error("Erro /friends/remove:", err);
-    res.status(500).json({ error: "Erro ao remover amigo" });
+    res.status(500).json({ error: "Erro ao desbloquear usuario" });
   }
 });
 

@@ -1,8 +1,7 @@
 // src/components/CardSearch.jsx
 import { useState } from "react";
 import { useGame } from "../context/GameContext.jsx";
-
-const API_URL = "https://mtg-commander-4k8m.onrender.com";
+import { API_URL } from "../config.js";
 
 function CardSearch() {
   const [query, setQuery] = useState("");

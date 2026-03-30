@@ -1,12 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-import { useNavigate } from "react-router-dom";
-
-const API_URL = "https://mtg-commander-4k8m.onrender.com";
+import { API_URL } from "../config.js";
 
 function Friends() {
   const { user, token } = useAuth();
-  const navigate = useNavigate();
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -221,7 +218,9 @@ function Friends() {
   }
 
   function goToProfile(id) {
-    navigate(`/players/${id}`);
+    if (!id) return;
+    setError("");
+    setInfo("Visualizacao publica de perfil/decks ainda nao foi implementada.");
   }
 
   return (

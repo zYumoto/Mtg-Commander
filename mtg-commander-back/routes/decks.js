@@ -2,12 +2,11 @@ const express = require("express");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
+const memoryDb = require("../store/memoryDb");
 
 const router = express.Router();
-
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
 
-// Schema de Deck
 const DeckSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
@@ -24,9 +23,12 @@ const DeckSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Deck = mongoose.model("Deck", DeckSchema);
+const Deck = mongoose.models.Deck || mongoose.model("Deck", DeckSchema);
 
-// Middleware de auth
+function isMongoReady() {
+  return mongoose.connection.readyState === 1;
+}
+
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
   if (!header) return res.status(401).json({ error: "Sem token" });
@@ -39,35 +41,31 @@ function authMiddleware(req, res, next) {
     req.userId = data.id;
     next();
   } catch (err) {
-    return res.status(401).json({ error: "Token inválido" });
+    return res.status(401).json({ error: "Token invalido" });
   }
+}
+
+async function findDeck(deckId, userId) {
+  return isMongoReady()
+    ? Deck.findOne({ _id: deckId, userId })
+    : memoryDb.findDeckById(userId, deckId);
 }
 
 router.use(authMiddleware);
 
-// ------------------------------
-// 1) ROTA PRIORITÁRIA /resolved
-// ------------------------------
 router.get("/:id/resolved", async (req, res, next) => {
   try {
-    const deck = await Deck.findOne({
-      _id: req.params.id,
-      userId: req.userId,
-    });
-
-    if (!deck) return res.status(404).json({ error: "Deck não encontrado" });
+    const deck = await findDeck(req.params.id, req.userId);
+    if (!deck) return res.status(404).json({ error: "Deck nao encontrado" });
 
     const resolvedCards = [];
-
     for (const card of deck.cards || []) {
       try {
-        const response = await axios.get(
-          "https://api.scryfall.com/cards/named",
-          { params: { fuzzy: card.name } }
-        );
+        const response = await axios.get("https://api.scryfall.com/cards/named", {
+          params: { fuzzy: card.name },
+        });
 
         const c = response.data;
-
         resolvedCards.push({
           name: c.name,
           quantity: card.quantity || 1,
@@ -83,14 +81,12 @@ router.get("/:id/resolved", async (req, res, next) => {
       }
     }
 
-    // resolve o comandante separado
     let commanderCard = null;
     if (deck.commander) {
       try {
-        const response = await axios.get(
-          "https://api.scryfall.com/cards/named",
-          { params: { fuzzy: deck.commander } }
-        );
+        const response = await axios.get("https://api.scryfall.com/cards/named", {
+          params: { fuzzy: deck.commander },
+        });
 
         const c = response.data;
         commanderCard = {
@@ -119,26 +115,22 @@ router.get("/:id/resolved", async (req, res, next) => {
   }
 });
 
-
-// ------------------------------
-// 2) DUPLICAR DECK
-// ------------------------------
 router.post("/:id/duplicate", async (req, res, next) => {
   try {
-    const deck = await Deck.findOne({
-      _id: req.params.id,
-      userId: req.userId,
-    });
+    const deck = await findDeck(req.params.id, req.userId);
+    if (!deck) return res.status(404).json({ error: "Deck nao encontrado" });
 
-    if (!deck) return res.status(404).json({ error: "Deck não encontrado" });
-
-    const copy = await Deck.create({
+    const payload = {
       userId: req.userId,
-      name: deck.name + " (cópia)",
+      name: `${deck.name} (copia)`,
       commander: deck.commander,
       format: deck.format,
       cards: deck.cards,
-    });
+    };
+
+    const copy = isMongoReady()
+      ? await Deck.create(payload)
+      : memoryDb.createDeck(payload);
 
     res.json(copy);
   } catch (err) {
@@ -146,54 +138,46 @@ router.post("/:id/duplicate", async (req, res, next) => {
   }
 });
 
-// ------------------------------
-// 3) ROTA GENÉRICA /:id
-// ------------------------------
 router.get("/:id", async (req, res, next) => {
   try {
-    const deck = await Deck.findOne({
-      _id: req.params.id,
-      userId: req.userId,
-    });
-
-    if (!deck) return res.status(404).json({ error: "Deck não encontrado" });
-
+    const deck = await findDeck(req.params.id, req.userId);
+    if (!deck) return res.status(404).json({ error: "Deck nao encontrado" });
     res.json(deck);
   } catch (err) {
     next(err);
   }
 });
 
-// ------------------------------
-// 4) LISTAR
-// ------------------------------
 router.get("/", async (req, res, next) => {
   try {
-    const decks = await Deck.find({ userId: req.userId }).sort({
-      updatedAt: -1,
-    });
+    const decks = isMongoReady()
+      ? await Deck.find({ userId: req.userId }).sort({ updatedAt: -1 })
+      : memoryDb.listDecks(req.userId);
+
     res.json(decks);
   } catch (err) {
     next(err);
   }
 });
 
-// ------------------------------
-// 5) CRIAR
-// ------------------------------
 router.post("/", async (req, res, next) => {
   try {
     const { name, commander, cards } = req.body;
 
-    if (!name)
-      return res.status(400).json({ error: "Nome obrigatório" });
+    if (!name) {
+      return res.status(400).json({ error: "Nome obrigatorio" });
+    }
 
-    const deck = await Deck.create({
+    const payload = {
       userId: req.userId,
       name,
       commander,
       cards,
-    });
+    };
+
+    const deck = isMongoReady()
+      ? await Deck.create(payload)
+      : memoryDb.createDeck(payload);
 
     res.json(deck);
   } catch (err) {
@@ -201,39 +185,31 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-// ------------------------------
-// 6) ATUALIZAR
-// ------------------------------
 router.put("/:id", async (req, res, next) => {
   try {
     const { name, commander, cards } = req.body;
+    const deck = isMongoReady()
+      ? await Deck.findOneAndUpdate(
+          { _id: req.params.id, userId: req.userId },
+          { name, commander, cards },
+          { new: true }
+        )
+      : memoryDb.updateDeck(req.userId, req.params.id, { name, commander, cards });
 
-    const deck = await Deck.findOneAndUpdate(
-      { _id: req.params.id, userId: req.userId },
-      { name, commander, cards },
-      { new: true }
-    );
-
-    if (!deck) return res.status(404).json({ error: "Deck não encontrado" });
-
+    if (!deck) return res.status(404).json({ error: "Deck nao encontrado" });
     res.json(deck);
   } catch (err) {
     next(err);
   }
 });
 
-// ------------------------------
-// 7) DELETAR
-// ------------------------------
 router.delete("/:id", async (req, res, next) => {
   try {
-    const deck = await Deck.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.userId,
-    });
+    const deck = isMongoReady()
+      ? await Deck.findOneAndDelete({ _id: req.params.id, userId: req.userId })
+      : memoryDb.deleteDeck(req.userId, req.params.id);
 
-    if (!deck) return res.status(404).json({ error: "Deck não encontrado" });
-
+    if (!deck) return res.status(404).json({ error: "Deck nao encontrado" });
     res.json({ message: "Deck removido" });
   } catch (err) {
     next(err);

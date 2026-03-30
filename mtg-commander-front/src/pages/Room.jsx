@@ -1,5 +1,4 @@
-// src/pages/Room.jsx
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext.jsx";
 
@@ -19,64 +18,42 @@ function Room() {
     stack: globalStack,
   } = useGame();
 
-  // se entrar sem sala (refresh direto na URL, por ex.), volta pro lobby
-  if (!roomCode) {
-    return (
-      <section className="page-center" style={{ maxWidth: "600px" }}>
-        <h2>Sala não encontrada</h2>
-        <p>Parece que você não está conectado a nenhuma sala.</p>
-        <button onClick={() => navigate("/lobby")}>Voltar para o Lobby</button>
-      </section>
-    );
-  }
-
-  // mapeia players para os 4 "lugares" da mesa
   const seats = useMemo(() => {
-    const result = {
-      top: null,
-      left: null,
-      right: null,
-      bottom: null,
-    };
-
+    const result = { top: null, left: null, right: null, bottom: null };
     if (players.length === 0) return result;
 
     const self = players.find((p) => p.name === playerName);
     const selfPlayer = self || players[0];
-
     result.bottom = selfPlayer;
 
     const others = players.filter((p) => p.id !== selfPlayer.id);
     const order = ["top", "left", "right"];
-
-    others.forEach((p, index) => {
+    others.forEach((player, index) => {
       const seatName = order[index];
-      if (seatName) result[seatName] = p;
+      if (seatName) result[seatName] = player;
     });
 
     return result;
   }, [players, playerName]);
 
   const selfPlayer =
-    players.find((p) => p.name === playerName) || seats.bottom || players[0];
+    players.find((p) => p.name === playerName) || seats.bottom || players[0] || null;
 
-  const [focusedId, setFocusedId] = useState(selfPlayer?.id);
-  const focusedPlayer =
-    players.find((p) => p.id === focusedId) || selfPlayer || null;
-
-  // ====== STACK GLOBAL (quadrado do meio da mesa) ======
+  const [focusedId, setFocusedId] = useState(null);
   const [showStackModal, setShowStackModal] = useState(false);
-
-  // card em hover na stack → preview no canto
   const [hoveredStackCard, setHoveredStackCard] = useState(null);
 
-  // agora a stack é GLOBAL da sala
+  const effectiveFocusedId = focusedId || selfPlayer?.id || null;
+  const focusedPlayer =
+    players.find((p) => p.id === effectiveFocusedId) || selfPlayer || null;
+
   const stack = globalStack || [];
   const lastStackCard = stack.length > 0 ? stack[stack.length - 1] : null;
 
   function handleSeatClick(player) {
-    if (!player) return;
-    setFocusedId(player.id);
+    if (player?.id) {
+      setFocusedId(player.id);
+    }
   }
 
   function allowDropStack(e) {
@@ -90,8 +67,7 @@ function Room() {
 
     try {
       const { instanceId, fromZone } = JSON.parse(raw);
-      if (!instanceId || !fromZone) return;
-      if (fromZone === "stack") return;
+      if (!instanceId || !fromZone || fromZone === "stack") return;
 
       moveCard?.({
         cardInstanceId: instanceId,
@@ -111,14 +87,23 @@ function Room() {
       "application/json",
       JSON.stringify({
         instanceId: card.instanceId,
-        fromZone: "stack", // <<< importantíssimo
+        fromZone: "stack",
       })
+    );
+  }
+
+  if (!roomCode) {
+    return (
+      <section className="page-center" style={{ maxWidth: "600px" }}>
+        <h2>Sala nao encontrada</h2>
+        <p>Parece que voce nao esta conectado a nenhuma sala.</p>
+        <button onClick={() => navigate("/lobby")}>Voltar para o Lobby</button>
+      </section>
     );
   }
 
   return (
     <section className="room">
-      {/* Cabeçalho da sala */}
       <header
         className="room-header"
         style={{
@@ -144,34 +129,17 @@ function Room() {
       </header>
 
       <div className="room-content">
-        {/* LADO ESQUERDO: chat + painel de deck */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.75rem",
-          }}
-        >
-          {/* Chat */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <div className="form-card" style={{ padding: 0, minHeight: "260px" }}>
             <Chat />
           </div>
 
-          {/* Card List / Deck (novo painel) */}
           <div className="form-card" style={{ padding: "0.75rem" }}>
             <DeckPanel />
           </div>
         </div>
 
-        {/* LADO DIREITO: mesa 4 players + HUD */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.75rem",
-          }}
-        >
-          {/* overview da mesa */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <div className="table-overview">
             <div className="table-player-top">
               <SeatCard
@@ -195,7 +163,6 @@ function Room() {
                 />
               </div>
 
-              {/* STACK GLOBAL NO MEIO DA MESA */}
               <div className="table-stack">
                 <div
                   className="table-stack-box"
@@ -204,9 +171,7 @@ function Room() {
                   onClick={() => {
                     if (stack.length > 0) setShowStackModal(true);
                   }}
-                  style={{
-                    cursor: stack.length > 0 ? "pointer" : "default",
-                  }}
+                  style={{ cursor: stack.length > 0 ? "pointer" : "default" }}
                 >
                   <div className="table-stack-label">STACK</div>
 
@@ -214,9 +179,7 @@ function Room() {
                     <div
                       className="table-stack-preview"
                       draggable
-                      onDragStart={(e) =>
-                        handleDragStartStackCard(e, lastStackCard)
-                      }
+                      onDragStart={(e) => handleDragStartStackCard(e, lastStackCard)}
                       onMouseEnter={() => setHoveredStackCard(lastStackCard)}
                       onMouseLeave={() => setHoveredStackCard(null)}
                     >
@@ -257,29 +220,22 @@ function Room() {
             </div>
           </div>
 
-          {/* HUD do player focado */}
           {focusedPlayer && (
             <PlayerHud
               player={focusedPlayer}
               onPassTurn={() => {
                 console.log("Passar turno (TODO) para", focusedPlayer.name);
               }}
-              onLifeChange={(delta) => {
-                updatePlayerLife(focusedPlayer.name, delta);
-              }}
+              onLifeChange={(delta) => updatePlayerLife(focusedPlayer.name, delta)}
             />
           )}
 
-          {/* MODAL DA STACK GLOBAL */}
           {showStackModal && (
             <div className="graveyard-modal-backdrop">
               <div className="graveyard-modal">
                 <div className="graveyard-modal-header">
                   <h3>Stack da mesa</h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowStackModal(false)}
-                  >
+                  <button type="button" onClick={() => setShowStackModal(false)}>
                     Fechar
                   </button>
                 </div>
@@ -300,11 +256,7 @@ function Room() {
                         onMouseLeave={() => setHoveredStackCard(null)}
                       >
                         <img
-                          src={
-                            card.image_uris?.small ||
-                            card.image_uris?.normal ||
-                            ""
-                          }
+                          src={card.image_uris?.small || card.image_uris?.normal || ""}
                           alt={card.name}
                           style={{
                             width: "90px",
@@ -322,7 +274,6 @@ function Room() {
         </div>
       </div>
 
-      {/* PREVIEW DA CARTA DA STACK NO CANTO DA TELA */}
       {hoveredStackCard && (
         <div
           className="stack-preview-overlay"
@@ -368,7 +319,6 @@ function Room() {
   );
 }
 
-/** SeatCard: plaquinha em volta da mesa */
 function SeatCard({
   player,
   onClick,
@@ -420,7 +370,7 @@ function SeatCard({
       {hasPlayer && (
         <span className="seat-label">
           {name}
-          {isSelf && " (você)"}
+          {isSelf && " (voce)"}
         </span>
       )}
 

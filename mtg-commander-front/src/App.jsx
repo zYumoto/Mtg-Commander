@@ -6,6 +6,8 @@ import Lobby from "./pages/Lobby.jsx";
 import Room from "./pages/Room.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import Decks from "./pages/Decks.jsx";
 import EditDeck from "./pages/EditDeck.jsx";
 import DeckView from "./pages/DeckView.jsx";
@@ -50,6 +52,8 @@ function AppInner() {
       {/* Auth */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Lobby */}
       <Route

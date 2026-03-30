@@ -24,11 +24,18 @@ const server = http.createServer(app);
 const MONGODB_URI =
   process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/mtg_commander";
 const PORT = process.env.PORT || 4000;
+const hasMongoConnection = () => mongoose.connection.readyState === 1;
 
 mongoose
-  .connect(MONGODB_URI)
-  .then(() => console.log("✅ Conectado ao MongoDB"))
-  .catch((err) => console.error("❌ Erro ao conectar no MongoDB:", err));
+  .connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 3000,
+  })
+  .then(() => console.log("MongoDB conectado"))
+  .catch((err) => {
+    console.warn(
+      `MongoDB indisponivel (${err.message}). Continuando com fallback em memoria.`
+    );
+  });
 
 // ======================
 // Schemas e Models
@@ -148,6 +155,8 @@ function broadcastRooms() {
 // Sincronizar sala com Mongo
 // ======================
 async function syncRoomToDb(code) {
+  if (!hasMongoConnection()) return;
+
   const room = rooms[code];
   if (!room) return;
 
@@ -757,7 +766,9 @@ io.on("connection", (socket) => {
 
       if (Object.keys(room.players).length === 0) {
         delete rooms[code];
-        await RoomModel.deleteOne({ code });
+        if (hasMongoConnection()) {
+          await RoomModel.deleteOne({ code });
+        }
         console.log(`🗑️ Sala ${code} removida (sem jogadores)`);
       } else {
         room.updatedAt = Date.now();
@@ -806,3 +817,4 @@ app.use((err, req, res, next) => {
 server.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
+
