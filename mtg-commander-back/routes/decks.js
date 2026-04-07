@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const memoryDb = require("../store/memoryDb");
+const supabaseDb = require("../store/supabaseDb");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
@@ -29,6 +30,10 @@ function isMongoReady() {
   return mongoose.connection.readyState === 1;
 }
 
+function isSupabaseReady() {
+  return supabaseDb.isConfigured();
+}
+
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
   if (!header) return res.status(401).json({ error: "Sem token" });
@@ -46,9 +51,9 @@ function authMiddleware(req, res, next) {
 }
 
 async function findDeck(deckId, userId) {
-  return isMongoReady()
-    ? Deck.findOne({ _id: deckId, userId })
-    : memoryDb.findDeckById(userId, deckId);
+  if (isSupabaseReady()) return supabaseDb.findDeckById(userId, deckId);
+  if (isMongoReady()) return Deck.findOne({ _id: deckId, userId });
+  return memoryDb.findDeckById(userId, deckId);
 }
 
 router.use(authMiddleware);
@@ -128,9 +133,14 @@ router.post("/:id/duplicate", async (req, res, next) => {
       cards: deck.cards,
     };
 
-    const copy = isMongoReady()
-      ? await Deck.create(payload)
-      : memoryDb.createDeck(payload);
+    let copy;
+    if (isSupabaseReady()) {
+      copy = await supabaseDb.createDeck(payload);
+    } else if (isMongoReady()) {
+      copy = await Deck.create(payload);
+    } else {
+      copy = memoryDb.createDeck(payload);
+    }
 
     res.json(copy);
   } catch (err) {
@@ -150,9 +160,14 @@ router.get("/:id", async (req, res, next) => {
 
 router.get("/", async (req, res, next) => {
   try {
-    const decks = isMongoReady()
-      ? await Deck.find({ userId: req.userId }).sort({ updatedAt: -1 })
-      : memoryDb.listDecks(req.userId);
+    let decks;
+    if (isSupabaseReady()) {
+      decks = await supabaseDb.listDecks(req.userId);
+    } else if (isMongoReady()) {
+      decks = await Deck.find({ userId: req.userId }).sort({ updatedAt: -1 });
+    } else {
+      decks = memoryDb.listDecks(req.userId);
+    }
 
     res.json(decks);
   } catch (err) {
@@ -175,9 +190,14 @@ router.post("/", async (req, res, next) => {
       cards,
     };
 
-    const deck = isMongoReady()
-      ? await Deck.create(payload)
-      : memoryDb.createDeck(payload);
+    let deck;
+    if (isSupabaseReady()) {
+      deck = await supabaseDb.createDeck(payload);
+    } else if (isMongoReady()) {
+      deck = await Deck.create(payload);
+    } else {
+      deck = memoryDb.createDeck(payload);
+    }
 
     res.json(deck);
   } catch (err) {
@@ -188,13 +208,26 @@ router.post("/", async (req, res, next) => {
 router.put("/:id", async (req, res, next) => {
   try {
     const { name, commander, cards } = req.body;
-    const deck = isMongoReady()
-      ? await Deck.findOneAndUpdate(
-          { _id: req.params.id, userId: req.userId },
-          { name, commander, cards },
-          { new: true }
-        )
-      : memoryDb.updateDeck(req.userId, req.params.id, { name, commander, cards });
+    let deck;
+    if (isSupabaseReady()) {
+      deck = await supabaseDb.updateDeck(req.userId, req.params.id, {
+        name,
+        commander,
+        cards,
+      });
+    } else if (isMongoReady()) {
+      deck = await Deck.findOneAndUpdate(
+        { _id: req.params.id, userId: req.userId },
+        { name, commander, cards },
+        { new: true }
+      );
+    } else {
+      deck = memoryDb.updateDeck(req.userId, req.params.id, {
+        name,
+        commander,
+        cards,
+      });
+    }
 
     if (!deck) return res.status(404).json({ error: "Deck nao encontrado" });
     res.json(deck);
@@ -205,9 +238,17 @@ router.put("/:id", async (req, res, next) => {
 
 router.delete("/:id", async (req, res, next) => {
   try {
-    const deck = isMongoReady()
-      ? await Deck.findOneAndDelete({ _id: req.params.id, userId: req.userId })
-      : memoryDb.deleteDeck(req.userId, req.params.id);
+    let deck;
+    if (isSupabaseReady()) {
+      deck = await supabaseDb.deleteDeck(req.userId, req.params.id);
+    } else if (isMongoReady()) {
+      deck = await Deck.findOneAndDelete({
+        _id: req.params.id,
+        userId: req.userId,
+      });
+    } else {
+      deck = memoryDb.deleteDeck(req.userId, req.params.id);
+    }
 
     if (!deck) return res.status(404).json({ error: "Deck nao encontrado" });
     res.json({ message: "Deck removido" });

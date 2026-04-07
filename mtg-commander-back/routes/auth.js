@@ -4,6 +4,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const memoryDb = require("../store/memoryDb");
+const supabaseDb = require("../store/supabaseDb");
 const { sendMail } = require("../utils/mailer");
 
 const router = express.Router();
@@ -31,6 +32,10 @@ const RESET_TOKEN_TTL_MS = 1000 * 60 * 15;
 
 function isMongoReady() {
   return mongoose.connection.readyState === 1;
+}
+
+function isSupabaseReady() {
+  return supabaseDb.isConfigured();
 }
 
 function buildUserPayload(user) {
@@ -67,17 +72,23 @@ function buildResetLink(rawToken) {
 }
 
 async function findUserByEmail(email) {
-  return isMongoReady()
-    ? User.findOne({ email })
-    : memoryDb.findUserByEmail(email);
+  if (isSupabaseReady()) return supabaseDb.findUserByEmail(email);
+  if (isMongoReady()) return User.findOne({ email });
+  return memoryDb.findUserByEmail(email);
 }
 
 async function findUserById(id) {
-  return isMongoReady() ? User.findById(id) : memoryDb.findUserById(id);
+  if (isSupabaseReady()) return supabaseDb.findUserById(id);
+  if (isMongoReady()) return User.findById(id);
+  return memoryDb.findUserById(id);
 }
 
 async function findUserByResetToken(rawToken) {
   const tokenHash = hashResetToken(rawToken);
+
+  if (isSupabaseReady()) {
+    return supabaseDb.findUserByResetTokenHash(tokenHash);
+  }
 
   if (isMongoReady()) {
     return User.findOne({
@@ -90,6 +101,10 @@ async function findUserByResetToken(rawToken) {
 }
 
 async function persistUser(user) {
+  if (isSupabaseReady()) {
+    return supabaseDb.saveUser(user);
+  }
+
   if (isMongoReady()) {
     await user.save();
     return user;
@@ -137,13 +152,18 @@ router.post("/register", async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const user = isMongoReady()
-      ? await User.create({
-          email,
-          password: hash,
-          nickname: nickname || email.split("@")[0],
-        })
-      : memoryDb.createUser({ email, password: hash, nickname });
+    let user;
+    if (isSupabaseReady()) {
+      user = await supabaseDb.createUser({ email, password: hash, nickname });
+    } else if (isMongoReady()) {
+      user = await User.create({
+        email,
+        password: hash,
+        nickname: nickname || email.split("@")[0],
+      });
+    } else {
+      user = memoryDb.createUser({ email, password: hash, nickname });
+    }
 
     const token = generateToken(user);
     res.json({ token, user: buildUserPayload(user) });
@@ -318,6 +338,10 @@ router.get("/users/search", authRequired, async (req, res) => {
       return res.json({ users: [] });
     }
 
+    if (isSupabaseReady()) {
+      return res.json({ users: await supabaseDb.searchUsers(req.user._id, q) });
+    }
+
     if (isMongoReady()) {
       const regex = new RegExp(q, "i");
       const users = await User.find({
@@ -340,6 +364,10 @@ router.get("/users/search", authRequired, async (req, res) => {
 
 router.get("/friends", authRequired, async (req, res) => {
   try {
+    if (isSupabaseReady()) {
+      return res.json(await supabaseDb.getFriendsPayload(req.user._id));
+    }
+
     if (isMongoReady()) {
       const me = await User.findById(req.user._id)
         .populate("friends", "_id email nickname fullName avatarUrl bannerUrl")

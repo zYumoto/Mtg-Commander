@@ -9,6 +9,7 @@ const axios = require("axios");
 
 const authRoutes = require("./routes/auth");
 const deckRoutes = require("./routes/decks");
+const supabaseDb = require("./store/supabaseDb");
 
 const app = express();
 app.use(cors());
@@ -25,17 +26,24 @@ const MONGODB_URI =
   process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/mtg_commander";
 const PORT = process.env.PORT || 4000;
 const hasMongoConnection = () => mongoose.connection.readyState === 1;
+const hasSupabaseConnection = () => supabaseDb.isConfigured();
 
-mongoose
-  .connect(MONGODB_URI, {
-    serverSelectionTimeoutMS: 3000,
-  })
-  .then(() => console.log("MongoDB conectado"))
-  .catch((err) => {
-    console.warn(
-      `MongoDB indisponivel (${err.message}). Continuando com fallback em memoria.`
-    );
-  });
+if (hasSupabaseConnection()) {
+  console.log("Supabase configurado para persistencia");
+}
+
+if (!hasSupabaseConnection() || process.env.MONGODB_URI) {
+  mongoose
+    .connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 3000,
+    })
+    .then(() => console.log("MongoDB conectado"))
+    .catch((err) => {
+      console.warn(
+        `MongoDB indisponivel (${err.message}). Continuando com fallback em memoria.`
+      );
+    });
+}
 
 // ======================
 // Schemas e Models
@@ -152,11 +160,9 @@ function broadcastRooms() {
 }
 
 // ======================
-// Sincronizar sala com Mongo
+// Sincronizar sala com o banco configurado
 // ======================
 async function syncRoomToDb(code) {
-  if (!hasMongoConnection()) return;
-
   const room = rooms[code];
   if (!room) return;
 
@@ -182,6 +188,26 @@ async function syncRoomToDb(code) {
     text: m.text,
     createdAt: m.createdAt,
   }));
+
+  if (hasSupabaseConnection()) {
+    try {
+      await supabaseDb.upsertRoom({
+        code,
+        name: room.name || `Sala ${code}`,
+        isPublic: !!room.isPublic,
+        players: playersArray,
+        messages: messagesArray,
+        owner: room.owner || null,
+        startTime: room.startTime || null,
+        stack: room.stack || [],
+      });
+    } catch (err) {
+      console.error("Erro ao salvar sala no Supabase:", err);
+    }
+    return;
+  }
+
+  if (!hasMongoConnection()) return;
 
   try {
     await RoomModel.findOneAndUpdate(
@@ -766,7 +792,9 @@ io.on("connection", (socket) => {
 
       if (Object.keys(room.players).length === 0) {
         delete rooms[code];
-        if (hasMongoConnection()) {
+        if (hasSupabaseConnection()) {
+          await supabaseDb.deleteRoom(code);
+        } else if (hasMongoConnection()) {
           await RoomModel.deleteOne({ code });
         }
         console.log(`🗑️ Sala ${code} removida (sem jogadores)`);
