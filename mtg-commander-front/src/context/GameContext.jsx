@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable react-hooks/set-state-in-effect */
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { socket } from "../socket";
 import { useAuth } from "./AuthContext.jsx";
 
@@ -91,33 +91,33 @@ export function GameProvider({ children }) {
     };
   }, []);
 
-  function connectSocketIfNeeded() {
+  const connectSocketIfNeeded = useCallback(function connectSocketIfNeeded() {
     if (!socket.connected) {
       socket.connect();
     }
-  }
+  }, []);
 
   // ======================
   // LOBBY: listar / criar sala
   // ======================
-  function fetchRooms() {
+  const fetchRooms = useCallback(function fetchRooms() {
     connectSocketIfNeeded();
     socket.emit("list-rooms");
-  }
+  }, [connectSocketIfNeeded]);
 
-  function createRoom({ roomName, roomCode, isPublic }) {
+  const createRoom = useCallback(function createRoom({ roomName, roomCode, isPublic }) {
     connectSocketIfNeeded();
     socket.emit("create-room", {
       roomName,
       roomCode,
       isPublic,
     });
-  }
+  }, [connectSocketIfNeeded]);
 
   // ======================
   // Entrar na sala
   // ======================
-  function joinRoom({ name, room }) {
+  const joinRoom = useCallback(function joinRoom({ name, room }) {
     if (!name || !room) return;
     connectSocketIfNeeded();
     setPlayerName(name);
@@ -127,7 +127,7 @@ export function GameProvider({ children }) {
       roomCode: room,
       playerName: name,
     });
-  }
+  }, [connectSocketIfNeeded]);
 
   // ======================
   // Gameplay

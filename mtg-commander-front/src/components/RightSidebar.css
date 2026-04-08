@@ -10,7 +10,7 @@
 .rsb__inner{
   height: 100%;
   background: linear-gradient(180deg, #0f1426, #0b1020);
-  border-radius: 18px;
+  border-radius: 16px;
   padding: 14px;
   box-sizing: border-box;
   display: flex;
@@ -24,12 +24,20 @@
   grid-template-columns: 44px 1fr;
   gap: 10px;
   align-items: center;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  margin-top: 0;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .rsb__avatar{
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: 8px;
   background: linear-gradient(180deg, #f0c14b, #d19b2e);
   color: #111;
   display: grid;
@@ -39,7 +47,7 @@
 
 .rsb__nickPill{
   height: 40px;
-  border-radius: 999px;
+  border-radius: 8px;
   background: rgba(27,34,68,.9);
   display: grid;
   place-items: center;
@@ -50,12 +58,13 @@
 
 .rsb__btn{
   height: 42px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid rgba(80,95,190,.2);
   background: rgba(27,34,68,.9);
   color: #e6e8ee;
   cursor: pointer;
   font-weight: 650;
+  margin-top: 0;
 }
 
 .rsb__btn:hover{
@@ -69,7 +78,7 @@
 
 .rsb__friendsBox{
   flex: 1;
-  border-radius: 18px;
+  border-radius: 8px;
   background: rgba(9, 12, 24, .55);
   border: 1px solid rgba(46, 56, 120, .25);
   padding: 14px;
@@ -102,7 +111,7 @@
 .rsb__friendsList::-webkit-scrollbar { width: 10px; }
 .rsb__friendsList::-webkit-scrollbar-thumb {
   background: rgba(120,140,255,.18);
-  border-radius: 999px;
+  border-radius: 8px;
 }
 .rsb__friendsList::-webkit-scrollbar-track { background: transparent; }
 
@@ -110,10 +119,18 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
   padding: 8px 10px;
-  border-radius: 12px;
+  border-radius: 8px;
   background: rgba(27,34,68,.35);
   border: 1px solid rgba(80,95,190,.14);
+  box-shadow: none;
+  color: #e6e8ee;
+  font-size: 12px;
+  margin-top: 0;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .rsb__dot{
@@ -131,4 +148,10 @@
 
 .rsb__settings{
   margin-top: auto;
+  font-size: 0;
+}
+
+.rsb__settings::after{
+  content: "PERFIL";
+  font-size: 12px;
 }

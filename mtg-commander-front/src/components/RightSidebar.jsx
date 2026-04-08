@@ -3,47 +3,71 @@ import "./RightSidebar.css";
 
 export default function RightSidebar({
   active = "lobby",
-  nickname = "NICKNAME",
-  avatarText = "OT",
+  nickname = "Jogador",
+  avatarText = "J",
   friends = [],
   onOpenDecks,
+  onOpenFriends,
+  onOpenProfile,
   onOpenSettings,
 }) {
-  const onlineFriends = friends.filter((f) => f?.online);
+  const visibleFriends = friends.slice(0, 8);
 
   return (
     <aside className="rsb">
       <div className="rsb__inner">
-        <div className="rsb__profileRow">
+        <button
+          type="button"
+          className="rsb__profileRow"
+          onClick={onOpenProfile}
+          title="Abrir perfil"
+        >
           <div className="rsb__avatar">{avatarText}</div>
           <div className="rsb__nickPill">{nickname}</div>
-        </div>
+        </button>
 
         <button
+          type="button"
           className={`rsb__btn ${active === "decks" ? "isActive" : ""}`}
           onClick={onOpenDecks}
         >
           MEUS DECKS
         </button>
 
+        <button
+          type="button"
+          className={`rsb__btn ${active === "friends" ? "isActive" : ""}`}
+          onClick={onOpenFriends}
+        >
+          AMIGOS
+        </button>
+
         <div className="rsb__friendsBox">
           <div className="rsb__friendsHeader">Amigos</div>
 
-          {onlineFriends.length === 0 ? (
-            <div className="rsb__friendsEmpty">Nenhum amigo online</div>
+          {visibleFriends.length === 0 ? (
+            <div className="rsb__friendsEmpty">Nenhum amigo adicionado</div>
           ) : (
             <div className="rsb__friendsList">
-              {onlineFriends.map((f) => (
-                <div key={f.id} className="rsb__friendRow">
+              {visibleFriends.map((friend) => (
+                <button
+                  type="button"
+                  key={friend._id || friend.id || friend.email}
+                  className="rsb__friendRow"
+                  onClick={onOpenFriends}
+                >
                   <span className="rsb__dot" />
-                  <span>{f.name}</span>
-                </div>
+                  <span>
+                    {friend.nickname || friend.fullName || friend.email || "Jogador"}
+                  </span>
+                </button>
               ))}
             </div>
           )}
         </div>
 
         <button
+          type="button"
           className="rsb__btn rsb__settings"
           onClick={onOpenSettings}
         >

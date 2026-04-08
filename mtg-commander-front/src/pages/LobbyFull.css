@@ -25,13 +25,14 @@ body {
   display: flex;
   justify-content: center;
   align-items: stretch;
+  overflow: hidden;
 }
 
 .lobbyfull__wrap {
   width: 100%;
   height: 100%;
-  max-width: 1700px;
-  padding: 18px;
+  max-width: 1660px;
+  padding: 14px;
   box-sizing: border-box;
   margin: 0 auto;
 }
@@ -41,7 +42,7 @@ body {
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-columns: 1fr 330px; /* main + sidebar */
+  grid-template-columns: minmax(0, 1fr) 330px;
   gap: 18px;
 }
 
@@ -58,21 +59,21 @@ body {
   width: 100%;
   height: 100%;
   background: linear-gradient(180deg, #0f1426, #0b1020);
-  border-radius: 18px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 18px 18px 16px;
   box-sizing: border-box;
-  position: relative;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 16px;
   border: 1px solid rgba(46, 56, 120, 0.35);
 }
 
 /* ===== TÍTULO ===== */
 .lobbyfull__titlePill {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 8px 52px;
-  border-radius: 999px;
+  justify-self: center;
+  min-width: 160px;
+  padding: 9px 32px;
+  border-radius: 8px;
   background: linear-gradient(180deg, #2b3674, #1c244d);
   color: #f3f5ff;
   font-size: 18px;
@@ -80,20 +81,20 @@ body {
   letter-spacing: 0.3px;
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(90, 110, 220, 0.25);
+  text-align: center;
 }
 
 /* ===== AÇÕES ===== */
 .lobbyfull__actions {
-  margin-top: 54px;
   display: grid;
-  grid-template-columns: 1fr 190px;
+  grid-template-columns: minmax(0, 1fr) 190px;
   gap: 12px;
   align-items: center;
 }
 
 .lobbyfull__search {
   height: 42px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid rgba(80, 95, 190, 0.25);
   padding: 0 16px;
   background: rgba(27, 34, 68, 0.9);
@@ -107,13 +108,14 @@ body {
 
 .lobbyfull__createBtn {
   height: 42px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid rgba(120, 160, 255, 0.25);
   background: linear-gradient(180deg, #3a6df0, #2f56c5);
   color: #fff;
   font-weight: 650;
   cursor: pointer;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  margin-top: 0;
 }
 
 .lobbyfull__createBtn:hover {
@@ -122,14 +124,23 @@ body {
 
 /* ===== ÁREA DE SALAS ===== */
 .lobbyfull__roomsArea {
-  margin-top: 14px;
-  height: calc(100% - 128px);
-  border-radius: 18px;
-  padding: 14px;
+  min-height: 0;
+  border-radius: 16px;
+  padding: 16px;
   box-sizing: border-box;
   background: rgba(9, 12, 24, 0.55);
   border: 1px solid rgba(46, 56, 120, 0.25);
   overflow-y: auto;
+}
+
+.lobbyfull__feedback {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(27, 34, 68, 0.85);
+  border: 1px solid rgba(120, 160, 255, 0.25);
+  color: #e6e8ee;
+  font-size: 13px;
 }
 
 /* Scroll discreto */
@@ -158,12 +169,15 @@ body {
     rgba(27, 34, 68, 0.95),
     rgba(20, 26, 53, 0.95)
   );
-  border-radius: 16px;
+  border-radius: 8px;
   border: 1px solid rgba(80, 95, 190, 0.25);
   cursor: pointer;
   transition: transform 0.14s ease, box-shadow 0.14s ease,
     border-color 0.14s ease;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+  color: #e6e8ee;
+  margin-top: 0;
+  text-align: left;
 }
 
 .lobbyfull__roomCard:hover {
@@ -196,8 +210,8 @@ body {
 
 .lobbyfull__emptyCard {
   width: min(520px, 92%);
-  padding: 18px 16px;
-  border-radius: 16px;
+  padding: 24px 22px;
+  border-radius: 8px;
   background: linear-gradient(
     180deg,
     rgba(27, 34, 68, 0.75),
@@ -221,8 +235,23 @@ body {
 
 /* ===== RESPONSIVO ===== */
 @media (max-width: 1100px) {
+  .lobbyfull {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
+  .lobbyfull__wrap {
+    height: auto;
+    min-height: 100vh;
+  }
+
   .lobbyfull__grid {
     grid-template-columns: 1fr;
+  }
+
+  .lobbyfull__main {
+    min-height: 680px;
   }
 
   .lobbyfull__roomsGrid {
@@ -231,6 +260,19 @@ body {
 }
 
 @media (max-width: 640px) {
+  .lobbyfull__wrap {
+    padding: 10px;
+  }
+
+  .lobbyfull__main {
+    padding: 10px;
+    min-height: 600px;
+  }
+
+  .lobbyfull__mainInner {
+    padding: 12px;
+  }
+
   .lobbyfull__actions {
     grid-template-columns: 1fr;
   }
