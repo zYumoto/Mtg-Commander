@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import ImageModal from "../components/ImageModal.jsx";
 
+const BIO_MAX_LENGTH = 100;
+
 function Profile() {
   const { user, loading, updateProfile, changePassword } = useAuth();
 
@@ -61,6 +63,12 @@ function Profile() {
   async function handleSaveProfile(e) {
     e.preventDefault();
     setProfileMessage("");
+
+    if (bio.length > BIO_MAX_LENGTH) {
+      setProfileMessage(`Sobre você deve ter no máximo ${BIO_MAX_LENGTH} caracteres.`);
+      return;
+    }
+
     setSavingProfile(true);
     try {
       await updateProfile({
@@ -192,10 +200,14 @@ function Profile() {
             Sobre você
             <textarea
               value={bio}
-              onChange={(e) => setBio(e.target.value)}
+              onChange={(e) => setBio(e.target.value.slice(0, BIO_MAX_LENGTH))}
               placeholder="Algumas informações rápidas sobre você"
               rows={3}
+              maxLength={BIO_MAX_LENGTH}
             />
+            <span className="profile-char-count">
+              {bio.length}/{BIO_MAX_LENGTH}
+            </span>
           </label>
 
           <button type="submit" disabled={savingProfile}>

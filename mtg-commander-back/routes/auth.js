@@ -286,6 +286,12 @@ router.put("/profile", authRequired, async (req, res) => {
         .json({ error: "Apelido deve ter pelo menos 2 caracteres" });
     }
 
+    if (bio && bio.length > 100) {
+      return res
+        .status(400)
+        .json({ error: "Sobre voce deve ter no maximo 100 caracteres" });
+    }
+
     req.user.nickname = nickname ?? req.user.nickname;
     req.user.fullName = fullName ?? req.user.fullName;
     req.user.avatarUrl = avatarUrl ?? req.user.avatarUrl;

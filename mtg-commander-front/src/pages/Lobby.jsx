@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./LobbyFull.css";
 import RightSidebar from "../components/RightSidebar.jsx";
+import FriendsModal from "../components/FriendsModal.jsx";
 import { API_URL } from "../config.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useGame } from "../context/GameContext.jsx";
@@ -9,10 +10,11 @@ import { socket } from "../socket.js";
 
 export default function Lobby() {
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { user, token, logout } = useAuth();
   const { publicRooms, fetchRooms, createRoom, joinRoom } = useGame();
   const [search, setSearch] = useState("");
   const [friends, setFriends] = useState([]);
+  const [friendsOpen, setFriendsOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
 
   const displayName =
@@ -20,6 +22,10 @@ export default function Lobby() {
     user?.fullName ||
     (user?.email ? user.email.split("@")[0] : "Jogador");
   const avatarText = (displayName || "J").slice(0, 2).toUpperCase();
+  const totalPlayers = publicRooms.reduce(
+    (sum, room) => sum + Number(room.playersCount || 0),
+    0
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -102,6 +108,11 @@ export default function Lobby() {
     navigate(`/room/${code}`);
   }
 
+  function onLogout() {
+    logout();
+    navigate("/login");
+  }
+
   return (
     <div className="lobbyfull">
       <div className="lobbyfull__wrap">
@@ -109,12 +120,29 @@ export default function Lobby() {
           {/* MAIN */}
           <main className="lobbyfull__main">
             <div className="lobbyfull__mainInner">
-              <div className="lobbyfull__titlePill">Lobby</div>
+              <div className="lobbyfull__topbar">
+                <div className="lobbyfull__titleBlock">
+                  <div className="lobbyfull__titlePill">Lobby</div>
+                  <p className="lobbyfull__subtitle">
+                    Mesas publicas abertas para Commander.
+                  </p>
+                </div>
+
+                <div className="lobbyfull__arcaneBadge" aria-hidden="true">
+                  ✦
+                </div>
+              </div>
+
+              <div className="lobbyfull__metaRow">
+                <span>{publicRooms.length} sala(s)</span>
+                <span>{totalPlayers} jogador(es)</span>
+                <span>grimorio online</span>
+              </div>
 
               <div className="lobbyfull__actions">
                 <input
                   className="lobbyfull__search"
-                  placeholder="Pesquisar sala"
+                  placeholder="Pesquisar mesa, codigo ou dono"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -174,15 +202,21 @@ export default function Lobby() {
             active="lobby"
             nickname={displayName}
             avatarText={avatarText}
+            avatarUrl={user?.avatarUrl || ""}
             friends={friends}
             onOpenDecks={() => navigate("/decks")}
-            onOpenFriends={() => navigate("/friends")}
+            onOpenFriends={() => setFriendsOpen(true)}
             onOpenProfile={() => navigate("/profile")}
-            onOpenSettings={() => navigate("/profile")}
+            onLogout={onLogout}
           />
         </div>
       </div>
 
+      <FriendsModal
+        open={friendsOpen}
+        onClose={() => setFriendsOpen(false)}
+        onChanged={setFriends}
+      />
     </div>
   );
 }

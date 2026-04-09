@@ -5,11 +5,12 @@ export default function RightSidebar({
   active = "lobby",
   nickname = "Jogador",
   avatarText = "J",
+  avatarUrl = "",
   friends = [],
   onOpenDecks,
   onOpenFriends,
   onOpenProfile,
-  onOpenSettings,
+  onLogout,
 }) {
   const visibleFriends = friends.slice(0, 8);
 
@@ -22,7 +23,9 @@ export default function RightSidebar({
           onClick={onOpenProfile}
           title="Abrir perfil"
         >
-          <div className="rsb__avatar">{avatarText}</div>
+          <div className="rsb__avatar">
+            {avatarUrl ? <img src={avatarUrl} alt={nickname} /> : avatarText}
+          </div>
           <div className="rsb__nickPill">{nickname}</div>
         </button>
 
@@ -68,8 +71,8 @@ export default function RightSidebar({
 
         <button
           type="button"
-          className="rsb__btn rsb__settings"
-          onClick={onOpenSettings}
+          className="rsb__logout"
+          onClick={onLogout}
         >
           CONFIGURAÇÕES
         </button>

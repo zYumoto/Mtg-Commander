@@ -13,7 +13,7 @@
 
 .deckspage__grid {
   display: grid;
-  grid-template-columns: 1fr 330px;
+  grid-template-columns: minmax(0, 1fr) 330px;
   gap: 18px;
 }
 
@@ -67,6 +67,8 @@
   padding: 14px;
   cursor: pointer;
   transition: transform .15s ease;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .deckspage__deckCard:hover {
@@ -82,6 +84,10 @@
 
 .deckspage__deckName {
   font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* EMPTY */
