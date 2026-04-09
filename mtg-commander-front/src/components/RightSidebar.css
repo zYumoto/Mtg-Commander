@@ -238,3 +238,69 @@
     padding: 12px;
   }
 }
+
+/* Premium lobby sidebar alignment */
+.rsb {
+  border-radius: 14px;
+  padding: 1px;
+  background: linear-gradient(145deg, rgba(231, 195, 106, 0.48), rgba(132, 48, 42, 0.18), rgba(255, 255, 255, 0.1));
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.38);
+}
+
+.rsb__inner {
+  border: 0;
+  border-radius: 13px;
+  padding: 18px;
+  background:
+    linear-gradient(180deg, rgba(22, 20, 22, 0.96), rgba(10, 10, 12, 0.96)),
+    linear-gradient(120deg, rgba(181, 54, 46, 0.12), transparent 48%);
+}
+
+.rsb__avatar {
+  background: linear-gradient(180deg, #d6ad54, #9f6f25);
+  color: #130f0a;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+}
+
+.rsb__nickPill,
+.rsb__btn,
+.rsb__friendsBox,
+.rsb__friendRow {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.055);
+  color: #f4f1e8;
+}
+
+.rsb__btn:hover {
+  background: rgba(231, 195, 106, 0.12);
+}
+
+.rsb__btn.isActive {
+  border-color: rgba(255, 232, 174, 0.38);
+  background: linear-gradient(180deg, #d6ad54, #9f6f25);
+  color: #130f0a;
+}
+
+.rsb__friendsHeader {
+  color: #fff7df;
+}
+
+.rsb__friendsEmpty,
+.rsb__friendName {
+  color: #bfb7a8;
+  opacity: 1;
+}
+
+.rsb__dot {
+  background: #40d58b;
+  box-shadow: 0 0 0 3px rgba(64, 213, 139, 0.14);
+}
+
+.rsb__logout {
+  border-color: rgba(181, 54, 46, 0.36);
+  color: #ffb8ad;
+}
+
+.rsb__logout:hover {
+  background: rgba(181, 54, 46, 0.12);
+}

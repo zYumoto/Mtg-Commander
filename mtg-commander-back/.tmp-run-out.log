@@ -2,6 +2,5 @@
 > mtg-commander-back@1.0.0 start
 > node server.js
 
-[dotenv@17.2.3] injecting env (6) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (6) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
 Supabase configurado para persistencia
-🚀 Servidor rodando na porta 4000

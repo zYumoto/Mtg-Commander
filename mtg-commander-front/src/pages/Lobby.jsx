@@ -120,37 +120,41 @@ export default function Lobby() {
           {/* MAIN */}
           <main className="lobbyfull__main">
             <div className="lobbyfull__mainInner">
-              <div className="lobbyfull__topbar">
-                <div className="lobbyfull__titleBlock">
-                  <div className="lobbyfull__titlePill">Lobby</div>
-                  <p className="lobbyfull__subtitle">
-                    Mesas publicas abertas para Commander.
-                  </p>
-                </div>
-
-                <div className="lobbyfull__arcaneBadge" aria-hidden="true">
-                  ✦
+              <div className="lobbyfull__hero">
+                <div className="lobbyfull__eyebrow">Commander Hub</div>
+                <h1>Lobby</h1>
+                <p>
+                  Encontre mesas publicas, acompanhe jogadores online e abra
+                  uma nova partida em segundos.
+                </p>
+                <div className="lobbyfull__metaRow" aria-label="Resumo do lobby">
+                  <span>
+                    <strong>{publicRooms.length}</strong>
+                    sala(s)
+                  </span>
+                  <span>
+                    <strong>{totalPlayers}</strong>
+                    jogador(es)
+                  </span>
+                  <span>
+                    <strong>{friends.length}</strong>
+                    amigo(s)
+                  </span>
                 </div>
               </div>
 
-              <div className="lobbyfull__metaRow">
-                <span>{publicRooms.length} sala(s)</span>
-                <span>{totalPlayers} jogador(es)</span>
-                <span>grimorio online</span>
-              </div>
+              <div className="lobbyfull__actions" aria-label="Buscar e criar sala">
+                <div className="lobbyfull__searchWrap">
+                  <span aria-hidden="true">BUSCAR</span>
+                  <input
+                    className="lobbyfull__search"
+                    placeholder="Pesquisar mesa, codigo ou dono"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
 
-              <div className="lobbyfull__actions">
-                <input
-                  className="lobbyfull__search"
-                  placeholder="Pesquisar mesa, codigo ou dono"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-
-                <button
-                  className="lobbyfull__createBtn"
-                  onClick={onCreateRoom}
-                >
+                <button className="lobbyfull__createBtn" onClick={onCreateRoom}>
                   CRIAR SALA
                 </button>
               </div>
@@ -163,12 +167,22 @@ export default function Lobby() {
                 {filtered.length === 0 ? (
                   <div className="lobbyfull__empty">
                     <div className="lobbyfull__emptyCard">
+                      <div className="lobbyfull__emptyIcon" aria-hidden="true">
+                        MTG
+                      </div>
                       <div className="lobbyfull__emptyTitle">
-                        Nenhuma sala disponível
+                        Nenhuma sala disponivel
                       </div>
                       <div className="lobbyfull__emptyText">
-                        Crie uma sala ou aguarde alguém abrir uma.
+                        Crie uma sala ou aguarde alguem abrir uma.
                       </div>
+                      <button
+                        type="button"
+                        className="lobbyfull__emptyAction"
+                        onClick={onCreateRoom}
+                      >
+                        Abrir mesa publica
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -180,14 +194,15 @@ export default function Lobby() {
                         className="lobbyfull__roomCard"
                         onClick={() => onJoinRoom(room)}
                       >
+                        <div className="lobbyfull__roomCode">
+                          {room.code || room.roomCode || "PUBLICA"}
+                        </div>
                         <div className="lobbyfull__roomTitle">
                           {room.name || `Sala ${room.code}`}
                         </div>
-                        <div className="lobbyfull__roomOwner">
-                          dono: {room.owner || "aguardando"}
-                        </div>
-                        <div className="lobbyfull__roomCount">
-                          {room.playersCount ?? 0} jogador(es)
+                        <div className="lobbyfull__roomFooter">
+                          <span>dono: {room.owner || "aguardando"}</span>
+                          <strong>{room.playersCount ?? 0} jogador(es)</strong>
                         </div>
                       </button>
                     ))}
