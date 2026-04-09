@@ -13,11 +13,16 @@ const UserSchema = new mongoose.Schema(
   {
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
-    nickname: { type: String, trim: true },
-    fullName: { type: String, trim: true },
-    avatarUrl: { type: String, trim: true },
-    bannerUrl: { type: String, trim: true },
-    bio: { type: String, trim: true },
+    nickname: { type: String, trim: true, default: "" },
+    fullName: { type: String, trim: true, default: "" },
+    avatarUrl: { type: String, trim: true, default: "" },
+    bannerUrl: { type: String, trim: true, default: "" },
+    bio: { type: String, trim: true, default: "" },
+    customTitle: { type: String, trim: true, default: "" },
+    victoryCount: { type: Number, default: 0 },
+    showcaseImageUrl: { type: String, trim: true, default: "" },
+    showcaseImageScale: { type: Number, default: 1 },
+    featuredDeckId: { type: String, trim: true, default: "" },
     resetPasswordTokenHash: { type: String, default: "" },
     resetPasswordExpiresAt: { type: Date, default: null },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
@@ -47,6 +52,11 @@ function buildUserPayload(user) {
     avatarUrl: user.avatarUrl,
     bannerUrl: user.bannerUrl,
     bio: user.bio,
+    customTitle: user.customTitle,
+    victoryCount: user.victoryCount,
+    showcaseImageUrl: user.showcaseImageUrl,
+    showcaseImageScale: user.showcaseImageScale,
+    featuredDeckId: user.featuredDeckId,
   };
 }
 
@@ -278,7 +288,18 @@ router.get("/me", authRequired, async (req, res) => {
 
 router.put("/profile", authRequired, async (req, res) => {
   try {
-    const { nickname, fullName, avatarUrl, bannerUrl, bio } = req.body;
+    const {
+      nickname,
+      fullName,
+      avatarUrl,
+      bannerUrl,
+      bio,
+      customTitle,
+      victoryCount,
+      showcaseImageUrl,
+      showcaseImageScale,
+      featuredDeckId,
+    } = req.body;
 
     if (nickname && nickname.length < 2) {
       return res
@@ -292,11 +313,51 @@ router.put("/profile", authRequired, async (req, res) => {
         .json({ error: "Sobre voce deve ter no maximo 100 caracteres" });
     }
 
+    if (customTitle && customTitle.length > 40) {
+      return res
+        .status(400)
+        .json({ error: "Titulo deve ter no maximo 40 caracteres" });
+    }
+
+    if (
+      showcaseImageScale !== undefined &&
+      (Number.isNaN(Number(showcaseImageScale)) ||
+        Number(showcaseImageScale) < 1 ||
+        Number(showcaseImageScale) > 2)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Tamanho da foto deve ficar entre 1 e 2" });
+    }
+
+    if (
+      victoryCount !== undefined &&
+      (!Number.isInteger(Number(victoryCount)) ||
+        Number(victoryCount) < 0 ||
+        Number(victoryCount) > 9999)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Vitorias deve ser um numero entre 0 e 9999" });
+    }
+
     req.user.nickname = nickname ?? req.user.nickname;
     req.user.fullName = fullName ?? req.user.fullName;
     req.user.avatarUrl = avatarUrl ?? req.user.avatarUrl;
     req.user.bannerUrl = bannerUrl ?? req.user.bannerUrl;
     req.user.bio = bio ?? req.user.bio;
+    req.user.customTitle = customTitle ?? req.user.customTitle;
+    req.user.victoryCount =
+      victoryCount !== undefined
+        ? Number(victoryCount)
+        : req.user.victoryCount;
+    req.user.showcaseImageUrl =
+      showcaseImageUrl ?? req.user.showcaseImageUrl;
+    req.user.showcaseImageScale =
+      showcaseImageScale !== undefined
+        ? Number(showcaseImageScale)
+        : req.user.showcaseImageScale;
+    req.user.featuredDeckId = featuredDeckId ?? req.user.featuredDeckId;
 
     req.user = await persistUser(req.user);
     res.json(buildUserPayload(req.user));
@@ -354,7 +415,9 @@ router.get("/users/search", authRequired, async (req, res) => {
         _id: { $ne: req.user._id },
         $or: [{ email: regex }, { nickname: regex }, { fullName: regex }],
       })
-        .select("_id email nickname fullName avatarUrl bannerUrl")
+        .select(
+          "_id email nickname fullName avatarUrl bannerUrl bio customTitle victoryCount showcaseImageUrl showcaseImageScale featuredDeckId"
+        )
         .limit(20)
         .lean();
 
@@ -376,8 +439,14 @@ router.get("/friends", authRequired, async (req, res) => {
 
     if (isMongoReady()) {
       const me = await User.findById(req.user._id)
-        .populate("friends", "_id email nickname fullName avatarUrl bannerUrl")
-        .populate("blocked", "_id email nickname fullName avatarUrl bannerUrl")
+        .populate(
+          "friends",
+          "_id email nickname fullName avatarUrl bannerUrl bio customTitle victoryCount showcaseImageUrl showcaseImageScale featuredDeckId"
+        )
+        .populate(
+          "blocked",
+          "_id email nickname fullName avatarUrl bannerUrl bio customTitle victoryCount showcaseImageUrl showcaseImageScale featuredDeckId"
+        )
         .lean();
 
       return res.json({

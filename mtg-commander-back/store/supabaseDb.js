@@ -35,6 +35,11 @@ function mapUser(row) {
     avatarUrl: row.avatar_url || "",
     bannerUrl: row.banner_url || "",
     bio: row.bio || "",
+    customTitle: row.custom_title || "",
+    victoryCount: row.victory_count || 0,
+    showcaseImageUrl: row.showcase_image_url || "",
+    showcaseImageScale: row.showcase_image_scale || 1,
+    featuredDeckId: row.featured_deck_id || "",
     resetPasswordTokenHash: row.reset_password_token_hash || "",
     resetPasswordExpiresAt: row.reset_password_expires_at || "",
     friends: row.friends || [],
@@ -53,6 +58,11 @@ function userPayload(user) {
     avatar_url: user.avatarUrl || "",
     banner_url: user.bannerUrl || "",
     bio: user.bio || "",
+    custom_title: user.customTitle || "",
+    victory_count: user.victoryCount || 0,
+    showcase_image_url: user.showcaseImageUrl || "",
+    showcase_image_scale: user.showcaseImageScale || 1,
+    featured_deck_id: user.featuredDeckId || "",
     reset_password_token_hash: user.resetPasswordTokenHash || "",
     reset_password_expires_at: user.resetPasswordExpiresAt || null,
     friends: user.friends || [],
@@ -143,7 +153,9 @@ async function searchUsers(currentUserId, query) {
   const like = `%${safeQuery}%`;
   const { data, error } = await supabase
     .from("app_users")
-    .select("id,email,nickname,full_name,avatar_url,banner_url,bio,friends,blocked,created_at,updated_at")
+    .select(
+      "id,email,nickname,full_name,avatar_url,banner_url,bio,custom_title,victory_count,showcase_image_url,showcase_image_scale,featured_deck_id,friends,blocked,created_at,updated_at"
+    )
     .neq("id", String(currentUserId))
     .or(`email.ilike.${like},nickname.ilike.${like},full_name.ilike.${like}`)
     .limit(20);
