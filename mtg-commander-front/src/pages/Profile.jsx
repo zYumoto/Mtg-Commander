@@ -153,6 +153,29 @@ function Profile() {
   const avatarSrc = withMediaVersion(avatarUrl);
   const bannerSrc = withMediaVersion(bannerUrl);
   const showcaseSrc = withMediaVersion(showcaseImageUrl);
+  const settingsPreviewMedia = [
+    {
+      key: "avatar",
+      title: "Avatar",
+      description: "Quadrado, ideal para sua identidade na mesa.",
+      image: avatarSrc,
+      onRemove: () => setAvatarUrl(""),
+    },
+    {
+      key: "banner",
+      title: "Banner",
+      description: "Faixa panoramica para abrir o seu perfil.",
+      image: bannerSrc,
+      onRemove: () => setBannerUrl(""),
+    },
+    {
+      key: "showcase",
+      title: "Foto personalizada",
+      description: "Imagem principal da vitrine do comandante.",
+      image: showcaseSrc,
+      onRemove: () => setShowcaseImageUrl(""),
+    },
+  ];
 
   async function handleSaveProfile(e) {
     e.preventDefault();
@@ -398,204 +421,276 @@ function Profile() {
             </div>
 
             <div className="profile-layout">
-              <form onSubmit={handleSaveProfile} className="form-card">
+              <form onSubmit={handleSaveProfile} className="form-card profile-settingsCard">
                 <div className="profile-form-heading">
                   <span>Perfil publico</span>
                   <h2>Dados do comandante</h2>
+                  <p>
+                    Organize sua identidade, selecione a midia principal e
+                    deixe o perfil mais consistente com o que aparece na tela.
+                  </p>
                 </div>
 
-                <label>
-                  Apelido (nome no jogo)
-                  <input
-                    type="text"
-                    value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
-                    placeholder="Ex: zYumoto"
-                  />
-                </label>
-
-                <label>
-                  Nome completo
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Opcional"
-                  />
-                </label>
-
-                <label>
-                  Titulo personalizado
-                  <input
-                    type="text"
-                    value={customTitle}
-                    onChange={(e) =>
-                      setCustomTitle(e.target.value.slice(0, TITLE_MAX_LENGTH))
-                    }
-                    placeholder="Ex: Campeao do Plano"
-                    maxLength={TITLE_MAX_LENGTH}
-                  />
-                </label>
-
-                <label>
-                  Quantidade de vitorias
-                  <input
-                    type="number"
-                    min="0"
-                    max={WINS_MAX}
-                    value={victoryCount}
-                    onChange={(e) => setVictoryCount(e.target.value)}
-                    placeholder="0"
-                  />
-                </label>
-
-                <label>
-                  Foto de perfil
-                  <div className="profile-uploadRow">
-                    <label className="profile-uploadButton">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          handlePickImage("avatar", e.target.files?.[0])
-                        }
-                      />
-                      Upload da foto
-                    </label>
-                    {avatarUrl && (
-                      <button
-                        type="button"
-                        className="profile-clearButton"
-                        onClick={() => setAvatarUrl("")}
-                      >
-                        Remover
-                      </button>
-                    )}
+                <div className="profile-settingsSection">
+                  <div className="profile-sectionHeader">
+                    <div>
+                      <span>Identidade</span>
+                      <h3>Informacoes principais</h3>
+                    </div>
+                    <p>Campos que aparecem com mais frequencia no perfil.</p>
                   </div>
-                </label>
 
-                <label>
-                  Banner de perfil
-                  <div className="profile-uploadRow">
-                    <label className="profile-uploadButton">
+                  <div className="profile-fieldsGrid">
+                    <label className="profile-field">
+                      <span>Apelido (nome no jogo)</span>
                       <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          handlePickImage("banner", e.target.files?.[0])
-                        }
+                        type="text"
+                        value={nickname}
+                        onChange={(e) => setNickname(e.target.value)}
+                        placeholder="Ex: zYumoto"
                       />
-                      Upload do banner
                     </label>
-                    {bannerUrl && (
-                      <button
-                        type="button"
-                        className="profile-clearButton"
-                        onClick={() => setBannerUrl("")}
-                      >
-                        Remover
-                      </button>
-                    )}
-                  </div>
-                </label>
 
-                <label>
-                  Foto personalizada
-                  <div className="profile-uploadRow">
-                    <label className="profile-uploadButton">
+                    <label className="profile-field">
+                      <span>Nome completo</span>
                       <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          handlePickImage("showcase", e.target.files?.[0])
-                        }
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Opcional"
                       />
-                      Upload da imagem
                     </label>
-                    {showcaseImageUrl && (
-                      <button
-                        type="button"
-                        className="profile-clearButton"
-                        onClick={() => setShowcaseImageUrl("")}
-                      >
-                        Remover
-                      </button>
-                    )}
-                  </div>
-                </label>
 
-                <label>
-                  Deck principal
-                  <select
-                    value={featuredDeckId}
-                    onChange={(e) => setFeaturedDeckId(e.target.value)}
-                  >
-                    <option value="">Nenhum deck selecionado</option>
-                    {decks.map((deck) => (
-                      <option key={deck._id} value={deck._id}>
-                        {deck.name}
-                      </option>
+                    <label className="profile-field">
+                      <span>Titulo personalizado</span>
+                      <input
+                        type="text"
+                        value={customTitle}
+                        onChange={(e) =>
+                          setCustomTitle(e.target.value.slice(0, TITLE_MAX_LENGTH))
+                        }
+                        placeholder="Ex: Campeao do Plano"
+                        maxLength={TITLE_MAX_LENGTH}
+                      />
+                    </label>
+
+                    <label className="profile-field">
+                      <span>Quantidade de vitorias</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={WINS_MAX}
+                        value={victoryCount}
+                        onChange={(e) => setVictoryCount(e.target.value)}
+                        placeholder="0"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="profile-settingsSection">
+                  <div className="profile-sectionHeader">
+                    <div>
+                      <span>Midia</span>
+                      <h3>Imagens do perfil</h3>
+                    </div>
+                    <p>
+                      Corte e ajuste cada imagem antes de salvar para manter o
+                      visual sincronizado.
+                    </p>
+                  </div>
+
+                  <div className="profile-mediaGrid">
+                    {settingsPreviewMedia.map((item) => (
+                      <article key={item.key} className="profile-mediaCard">
+                        <div
+                          className={`profile-mediaCard__preview profile-mediaCard__preview--${item.key}`}
+                        >
+                          {item.image ? (
+                            <img src={item.image} alt={item.title} />
+                          ) : (
+                            <div className="profile-mediaCard__placeholder">
+                              {item.title}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="profile-mediaCard__body">
+                          <div>
+                            <strong>{item.title}</strong>
+                            <p>{item.description}</p>
+                          </div>
+
+                          <div className="profile-uploadRow">
+                            <label className="profile-uploadButton">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) =>
+                                  handlePickImage(item.key, e.target.files?.[0])
+                                }
+                              />
+                              {item.image ? "Trocar imagem" : "Escolher imagem"}
+                            </label>
+                            {item.image && (
+                              <button
+                                type="button"
+                                className="profile-clearButton"
+                                onClick={item.onRemove}
+                              >
+                                Remover
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </article>
                     ))}
-                  </select>
-                </label>
+                  </div>
+                </div>
 
-                <label>
-                  Sobre voce
-                  <textarea
-                    value={bio}
-                    onChange={(e) =>
-                      setBio(e.target.value.slice(0, BIO_MAX_LENGTH))
-                    }
-                    placeholder="Algumas informacoes rapidas sobre voce"
-                    rows={3}
-                    maxLength={BIO_MAX_LENGTH}
-                  />
-                  <span className="profile-char-count">
-                    {bio.length}/{BIO_MAX_LENGTH}
-                  </span>
-                </label>
+                <div className="profile-settingsSection">
+                  <div className="profile-sectionHeader">
+                    <div>
+                      <span>Apresentacao</span>
+                      <h3>Resumo do perfil</h3>
+                    </div>
+                    <p>
+                      Escolha o deck em destaque e adicione uma descricao curta.
+                    </p>
+                  </div>
 
-                <button type="submit" disabled={savingProfile}>
-                  {savingProfile ? "Salvando..." : "Salvar perfil"}
-                </button>
+                  <label className="profile-field">
+                    <span>Deck principal</span>
+                    <select
+                      value={featuredDeckId}
+                      onChange={(e) => setFeaturedDeckId(e.target.value)}
+                    >
+                      <option value="">Nenhum deck selecionado</option>
+                      {decks.map((deck) => (
+                        <option key={deck._id} value={deck._id}>
+                          {deck.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                {profileMessage && (
-                  <p className="feedback-text">{profileMessage}</p>
-                )}
+                  <label className="profile-field">
+                    <span>Sobre voce</span>
+                    <textarea
+                      value={bio}
+                      onChange={(e) =>
+                        setBio(e.target.value.slice(0, BIO_MAX_LENGTH))
+                      }
+                      placeholder="Algumas informacoes rapidas sobre voce"
+                      rows={3}
+                      maxLength={BIO_MAX_LENGTH}
+                    />
+                    <span className="profile-char-count">
+                      {bio.length}/{BIO_MAX_LENGTH}
+                    </span>
+                  </label>
+                </div>
+
+                <div className="profile-formFooter">
+                  {profileMessage && (
+                    <p className="feedback-text">{profileMessage}</p>
+                  )}
+
+                  <button type="submit" disabled={savingProfile}>
+                    {savingProfile ? "Salvando..." : "Salvar perfil"}
+                  </button>
+                </div>
               </form>
 
-              <form onSubmit={handleChangePassword} className="form-card">
+              <div className="profile-settingsAside">
+                <article className="form-card profile-settingsSnapshot">
+                  <div className="profile-form-heading">
+                    <span>Preview</span>
+                    <h2>Como seu perfil aparece</h2>
+                    <p>
+                      Uma leitura rapida do que vai ficar em destaque depois de
+                      salvar.
+                    </p>
+                  </div>
+
+                  <div className="profile-settingsSnapshot__hero">
+                    <div
+                      className="profile-settingsSnapshot__banner"
+                      style={
+                        bannerSrc
+                          ? { backgroundImage: `url(${bannerSrc})` }
+                          : undefined
+                      }
+                    />
+                    <div className="profile-settingsSnapshot__avatar">
+                      {avatarSrc ? (
+                        <img src={avatarSrc} alt={displayName} />
+                      ) : (
+                        <span>{displayName.charAt(0).toUpperCase()}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="profile-settingsSnapshot__body">
+                    <strong>{displayName}</strong>
+                    <span>{customTitle || "Sem titulo personalizado"}</span>
+                    <p>
+                      {bio ||
+                        "Seu resumo ainda esta vazio. Use esse espaco para definir sua presenca na mesa."}
+                    </p>
+                  </div>
+
+                  <div className="profile-settingsSnapshot__meta">
+                    <div>
+                      <strong>{normalizedWins}</strong>
+                      <span>vitorias</span>
+                    </div>
+                    <div>
+                      <strong>{featuredDeck ? featuredDeck.name : "--"}</strong>
+                      <span>deck principal</span>
+                    </div>
+                  </div>
+                </article>
+
+                <form onSubmit={handleChangePassword} className="form-card profile-settingsCard">
                 <div className="profile-form-heading">
                   <span>Seguranca</span>
                   <h2>Trocar senha</h2>
+                  <p>
+                    Atualize a senha sem sair do perfil. Use algo facil de
+                    lembrar e dificil de adivinhar.
+                  </p>
                 </div>
 
-                <label>
-                  Senha atual
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                  />
-                </label>
+                  <label className="profile-field">
+                    <span>Senha atual</span>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                    />
+                  </label>
 
-                <label>
-                  Nova senha
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                  />
-                </label>
+                  <label className="profile-field">
+                    <span>Nova senha</span>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                  </label>
 
-                <button type="submit" disabled={changingPassword}>
-                  {changingPassword ? "Trocando..." : "Atualizar senha"}
-                </button>
+                  <div className="profile-formFooter">
+                    {passwordMessage && (
+                      <p className="feedback-text">{passwordMessage}</p>
+                    )}
 
-                {passwordMessage && (
-                  <p className="feedback-text">{passwordMessage}</p>
-                )}
-              </form>
+                    <button type="submit" disabled={changingPassword}>
+                      {changingPassword ? "Trocando..." : "Atualizar senha"}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </section>
         </div>
