@@ -133,6 +133,7 @@ function EditDeck() {
   const [searchError, setSearchError] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [setFilter, setSetFilter] = useState("all");
+  const [hoveredDeckCard, setHoveredDeckCard] = useState(null);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -179,6 +180,14 @@ function EditDeck() {
         .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
     [deckCards]
   );
+
+  const hoveredDeckCardData = useMemo(() => {
+    if (!hoveredDeckCard) return null;
+    return (
+      previewCards.find((card) => normalizeCardName(card.name) === normalizeCardName(hoveredDeckCard)) ||
+      null
+    );
+  }, [hoveredDeckCard, previewCards]);
 
   const commanderPreviewUrl = useMemo(() => getCardImageUrl(commander.trim()), [commander]);
 
@@ -273,6 +282,9 @@ function EditDeck() {
           return [entry];
         }
         if (entry.quantity <= 1) {
+          if (normalizeCardName(cardName) === normalizeCardName(hoveredDeckCard)) {
+            setHoveredDeckCard(null);
+          }
           return [];
         }
         return [{ ...entry, quantity: entry.quantity - 1 }];
@@ -725,28 +737,66 @@ function EditDeck() {
                       Arraste cartas para esta area para montar o deck mao a mao.
                     </div>
                   ) : (
-                    <div className="deckshell__visualList">
-                      {previewCards.map((card) => (
-                        <article key={card.name} className="deckshell__visualCard">
-                          <img
-                            src={card.imageUrl || getCardImageUrl(card.name)}
-                            alt={card.name}
-                            className="deckshell__visualCardImage"
-                          />
-                          <div className="deckshell__visualCardBody">
-                            <strong>{card.name}</strong>
-                            <span>{card.quantity} copia(s)</span>
+                    <div className="deckshell__deckWorkspace">
+                      <div className="deckshell__visualList">
+                        {previewCards.map((card) => (
+                          <article
+                            key={card.name}
+                            className="deckshell__visualCard"
+                            onMouseEnter={() => setHoveredDeckCard(card.name)}
+                            onMouseLeave={() => setHoveredDeckCard((current) =>
+                              normalizeCardName(current) === normalizeCardName(card.name)
+                                ? null
+                                : current
+                            )}
+                            onFocus={() => setHoveredDeckCard(card.name)}
+                            onBlur={() => setHoveredDeckCard((current) =>
+                              normalizeCardName(current) === normalizeCardName(card.name)
+                                ? null
+                                : current
+                            )}
+                          >
+                            <img
+                              src={card.imageUrl || getCardImageUrl(card.name)}
+                              alt={card.name}
+                              className="deckshell__visualCardImage"
+                            />
+                            <div className="deckshell__visualCardBody">
+                              <strong>{card.name}</strong>
+                              <span>{card.quantity} copia(s)</span>
+                            </div>
+                            <div className="deckshell__visualCardActions">
+                              <button type="button" onClick={() => addCardToDeck(card)}>
+                                +1
+                              </button>
+                              <button type="button" onClick={() => removeCardFromDeck(card.name)}>
+                                Remover
+                              </button>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+
+                      <aside className="deckshell__hoverPreview" aria-live="polite">
+                        {hoveredDeckCardData ? (
+                          <div className="deckshell__hoverPreviewCard">
+                            <span>Preview</span>
+                            <strong>{hoveredDeckCardData.name}</strong>
+                            <img
+                              src={
+                                hoveredDeckCardData.imageUrl ||
+                                getCardImageUrl(hoveredDeckCardData.name)
+                              }
+                              alt={hoveredDeckCardData.name}
+                              className="deckshell__hoverPreviewImage"
+                            />
                           </div>
-                          <div className="deckshell__visualCardActions">
-                            <button type="button" onClick={() => addCardToDeck(card)}>
-                              +1
-                            </button>
-                            <button type="button" onClick={() => removeCardFromDeck(card.name)}>
-                              Remover
-                            </button>
+                        ) : (
+                          <div className="deckshell__hoverPreviewEmpty">
+                            Passe o mouse em uma carta do deck para visualizar.
                           </div>
-                        </article>
-                      ))}
+                        )}
+                      </aside>
                     </div>
                   )}
                 </div>
