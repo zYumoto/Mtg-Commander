@@ -87,6 +87,20 @@ function createSearchCard(card) {
   };
 }
 
+async function readJsonResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+
+  const text = await response.text();
+  throw new Error(
+    text.startsWith("<!DOCTYPE") || text.startsWith("<html")
+      ? "Resposta HTML inesperada do servidor."
+      : text || "Resposta invalida do servidor."
+  );
+}
+
 function EditDeck() {
   const { id } = useParams();
   const isNew = !id;
@@ -277,6 +291,8 @@ function EditDeck() {
 
     try {
       const query = `${finalQuery} game:paper`;
+      let data = null;
+
       const res = await fetch(
         `${API_URL}/api/cards/search?q=${encodeURIComponent(query)}&order=name&unique=cards`,
         {
@@ -287,10 +303,19 @@ function EditDeck() {
             : undefined,
         }
       );
-      const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || data.details || "Erro ao buscar cartas");
+      if (res.ok) {
+        data = await readJsonResponse(res);
+      } else {
+        const fallbackRes = await fetch(
+          `https://api.scryfall.com/cards/search?order=name&unique=cards&q=${encodeURIComponent(
+            query
+          )}`
+        );
+        data = await readJsonResponse(fallbackRes);
+        if (!fallbackRes.ok) {
+          throw new Error(data.error || data.details || "Erro ao buscar cartas");
+        }
       }
 
       setSearchResults((data.data || []).slice(0, 12).map(createSearchCard));
