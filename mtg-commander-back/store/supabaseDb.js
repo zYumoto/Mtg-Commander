@@ -1,7 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
-
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "profile-media";
 
 const supabase =
   SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
@@ -13,6 +13,8 @@ const supabase =
       })
     : null;
 
+let bucketReadyPromise = null;
+
 function isConfigured() {
   return !!supabase;
 }
@@ -21,6 +23,155 @@ function normalizeError(error) {
   if (error) {
     throw new Error(error.message || "Erro ao consultar Supabase");
   }
+}
+
+async function ensureStorageBucket() {
+  if (!supabase) {
+    throw new Error("Supabase Storage nao configurado");
+  }
+
+  if (!bucketReadyPromise) {
+    bucketReadyPromise = (async () => {
+      const { data, error } = await supabase.storage.getBucket(STORAGE_BUCKET);
+      if (!error && data) {
+        if (!data.public) {
+          const { error: updateError } = await supabase.storage.updateBucket(
+            STORAGE_BUCKET,
+            {
+              public: true,
+              fileSizeLimit: "5242880",
+              allowedMimeTypes: ["image/*"],
+            }
+          );
+          normalizeError(updateError);
+        }
+        return;
+      }
+
+      const bucketMissing =
+        error &&
+        /not found|does not exist|no bucket/i.test(
+          `${error.message || ""} ${error.name || ""}`
+        );
+
+      if (!bucketMissing) {
+        normalizeError(error);
+      }
+
+      const { error: createError } = await supabase.storage.createBucket(
+        STORAGE_BUCKET,
+        {
+          public: true,
+          fileSizeLimit: "5242880",
+          allowedMimeTypes: ["image/*"],
+        }
+      );
+      normalizeError(createError);
+    })().catch((err) => {
+      bucketReadyPromise = null;
+      throw err;
+    });
+  }
+
+  await bucketReadyPromise;
+}
+
+function parseDataUrl(dataUrl) {
+  const match = String(dataUrl || "").match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error("Formato de imagem invalido");
+  }
+
+  const [, mimeType, base64] = match;
+  return {
+    mimeType,
+    buffer: Buffer.from(base64, "base64"),
+  };
+}
+
+function buildStoragePath(userId, field) {
+  return `${userId}/${field}`;
+}
+
+function extractStoragePathFromUrl(url) {
+  if (!url || !SUPABASE_URL) return null;
+
+  const normalizedBaseUrl = SUPABASE_URL.replace(/\/$/, "");
+  const publicPrefix = `${normalizedBaseUrl}/storage/v1/object/public/${STORAGE_BUCKET}/`;
+  const renderPrefix = `${normalizedBaseUrl}/storage/v1/render/image/public/${STORAGE_BUCKET}/`;
+
+  if (String(url).startsWith(publicPrefix)) {
+    return decodeURIComponent(String(url).slice(publicPrefix.length).split("?")[0]);
+  }
+
+  if (String(url).startsWith(renderPrefix)) {
+    return decodeURIComponent(String(url).slice(renderPrefix.length).split("?")[0]);
+  }
+
+  return null;
+}
+
+async function uploadProfileImage({ userId, field, dataUrl }) {
+  await ensureStorageBucket();
+
+  const { mimeType, buffer } = parseDataUrl(dataUrl);
+  const path = buildStoragePath(userId, field);
+
+  const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, buffer, {
+    contentType: mimeType,
+    upsert: true,
+    cacheControl: "3600",
+  });
+  normalizeError(error);
+
+  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function removeProfileImageByUrl(url) {
+  const path = extractStoragePathFromUrl(url);
+  if (!path || !supabase) return;
+
+  await ensureStorageBucket();
+
+  const { error } = await supabase.storage.from(STORAGE_BUCKET).remove([path]);
+  normalizeError(error);
+}
+
+async function getProfileImagePublicUrl(userId, field) {
+  if (!supabase) return "";
+
+  await ensureStorageBucket();
+
+  const folder = String(userId);
+  const fileName = String(field);
+  const { data, error } = await supabase.storage.from(STORAGE_BUCKET).list(folder, {
+    limit: 20,
+    search: fileName,
+  });
+  normalizeError(error);
+
+  const exists = (data || []).some((item) => item.name === fileName);
+  if (!exists) {
+    return "";
+  }
+
+  const { data: publicData } = supabase.storage
+    .from(STORAGE_BUCKET)
+    .getPublicUrl(buildStoragePath(userId, field));
+  return publicData.publicUrl;
+}
+
+async function hydrateProfileMedia(user) {
+  if (!user || !supabase) return user;
+
+  for (const field of ["avatarUrl", "bannerUrl", "showcaseImageUrl"]) {
+    if (!user[field]) {
+      user[field] = await getProfileImagePublicUrl(user._id, field);
+    }
+  }
+
+  return user;
 }
 
 function mapUser(row) {
@@ -70,6 +221,36 @@ function userPayload(user) {
   };
 }
 
+function extractMissingColumn(error) {
+  const message = String(error?.message || "");
+  const match = message.match(/Could not find the '([^']+)' column/i);
+  return match ? match[1] : null;
+}
+
+async function updateUserWithSchemaFallback(id, payload) {
+  let remainingPayload = { ...payload };
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("app_users")
+      .update(remainingPayload)
+      .eq("id", String(id))
+      .select("*")
+      .single();
+
+    if (!error) {
+      return data;
+    }
+
+    const missingColumn = extractMissingColumn(error);
+    if (!missingColumn || !(missingColumn in remainingPayload)) {
+      normalizeError(error);
+    }
+
+    delete remainingPayload[missingColumn];
+  }
+}
+
 function mapDeck(row) {
   if (!row) return null;
 
@@ -97,7 +278,7 @@ async function createUser({ email, password, nickname }) {
     .single();
 
   normalizeError(error);
-  return mapUser(data);
+  return hydrateProfileMedia(mapUser(data));
 }
 
 async function findUserByEmail(email) {
@@ -108,7 +289,7 @@ async function findUserByEmail(email) {
     .maybeSingle();
 
   normalizeError(error);
-  return mapUser(data);
+  return hydrateProfileMedia(mapUser(data));
 }
 
 async function findUserById(id) {
@@ -119,7 +300,7 @@ async function findUserById(id) {
     .maybeSingle();
 
   normalizeError(error);
-  return mapUser(data);
+  return hydrateProfileMedia(mapUser(data));
 }
 
 async function findUserByResetTokenHash(tokenHash) {
@@ -131,19 +312,12 @@ async function findUserByResetTokenHash(tokenHash) {
     .maybeSingle();
 
   normalizeError(error);
-  return mapUser(data);
+  return hydrateProfileMedia(mapUser(data));
 }
 
 async function saveUser(user) {
-  const { data, error } = await supabase
-    .from("app_users")
-    .update(userPayload(user))
-    .eq("id", String(user._id))
-    .select("*")
-    .single();
-
-  normalizeError(error);
-  return mapUser(data);
+  const data = await updateUserWithSchemaFallback(user._id, userPayload(user));
+  return hydrateProfileMedia(mapUser(data));
 }
 
 async function searchUsers(currentUserId, query) {
@@ -307,8 +481,10 @@ module.exports = {
   getFriendsPayload,
   isConfigured,
   listDecks,
+  removeProfileImageByUrl,
   saveUser,
   searchUsers,
+  uploadProfileImage,
   updateDeck,
   upsertRoom,
 };

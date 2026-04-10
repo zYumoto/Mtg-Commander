@@ -57,6 +57,7 @@ function buildUserPayload(user) {
     showcaseImageUrl: user.showcaseImageUrl,
     showcaseImageScale: user.showcaseImageScale,
     featuredDeckId: user.featuredDeckId,
+    updatedAt: user.updatedAt,
   };
 }
 
@@ -79,6 +80,46 @@ function buildResetLink(rawToken) {
   return `${baseUrl.replace(/\/$/, "")}/reset-password?token=${encodeURIComponent(
     rawToken
   )}`;
+}
+
+function isInlineImage(value) {
+  return typeof value === "string" && value.startsWith("data:image/");
+}
+
+async function resolveProfileImageField({ user, field, nextValue }) {
+  if (nextValue === undefined) {
+    return user[field];
+  }
+
+  const currentValue = user[field] || "";
+  const normalizedValue = typeof nextValue === "string" ? nextValue.trim() : nextValue;
+
+  if (!isSupabaseReady()) {
+    return normalizedValue ?? currentValue;
+  }
+
+  if (!normalizedValue) {
+    if (currentValue) {
+      await supabaseDb.removeProfileImageByUrl(currentValue);
+    }
+    return "";
+  }
+
+  if (!isInlineImage(normalizedValue)) {
+    return normalizedValue;
+  }
+
+  const uploadedUrl = await supabaseDb.uploadProfileImage({
+    userId: user._id,
+    field,
+    dataUrl: normalizedValue,
+  });
+
+  if (currentValue && currentValue !== uploadedUrl) {
+    await supabaseDb.removeProfileImageByUrl(currentValue);
+  }
+
+  return uploadedUrl;
 }
 
 async function findUserByEmail(email) {
@@ -150,7 +191,9 @@ async function authRequired(req, res, next) {
 
 router.post("/register", async (req, res) => {
   try {
-    const { email, password, nickname } = req.body;
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "");
+    const nickname = String(req.body?.nickname || "").trim();
 
     if (!email || !password) {
       return res.status(400).json({ error: "Email e senha sao obrigatorios" });
@@ -185,7 +228,8 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "");
     const user = await findUserByEmail(email);
 
     if (!user) {
@@ -343,16 +387,27 @@ router.put("/profile", authRequired, async (req, res) => {
 
     req.user.nickname = nickname ?? req.user.nickname;
     req.user.fullName = fullName ?? req.user.fullName;
-    req.user.avatarUrl = avatarUrl ?? req.user.avatarUrl;
-    req.user.bannerUrl = bannerUrl ?? req.user.bannerUrl;
+    req.user.avatarUrl = await resolveProfileImageField({
+      user: req.user,
+      field: "avatarUrl",
+      nextValue: avatarUrl,
+    });
+    req.user.bannerUrl = await resolveProfileImageField({
+      user: req.user,
+      field: "bannerUrl",
+      nextValue: bannerUrl,
+    });
     req.user.bio = bio ?? req.user.bio;
     req.user.customTitle = customTitle ?? req.user.customTitle;
     req.user.victoryCount =
       victoryCount !== undefined
         ? Number(victoryCount)
         : req.user.victoryCount;
-    req.user.showcaseImageUrl =
-      showcaseImageUrl ?? req.user.showcaseImageUrl;
+    req.user.showcaseImageUrl = await resolveProfileImageField({
+      user: req.user,
+      field: "showcaseImageUrl",
+      nextValue: showcaseImageUrl,
+    });
     req.user.showcaseImageScale =
       showcaseImageScale !== undefined
         ? Number(showcaseImageScale)

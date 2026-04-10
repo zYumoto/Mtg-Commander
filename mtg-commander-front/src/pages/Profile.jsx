@@ -143,6 +143,17 @@ function Profile() {
   const featuredDeck =
     decks.find((deck) => String(deck._id) === String(featuredDeckId)) || null;
 
+  function withMediaVersion(url) {
+    if (!url || url.startsWith("data:")) return url;
+    const version = user?.updatedAt || "1";
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}v=${encodeURIComponent(version)}`;
+  }
+
+  const avatarSrc = withMediaVersion(avatarUrl);
+  const bannerSrc = withMediaVersion(bannerUrl);
+  const showcaseSrc = withMediaVersion(showcaseImageUrl);
+
   async function handleSaveProfile(e) {
     e.preventDefault();
     setProfileMessage("");
@@ -242,9 +253,9 @@ function Profile() {
         <div
           className="profile-hero-banner"
           style={
-            bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined
+            bannerSrc ? { backgroundImage: `url(${bannerSrc})` } : undefined
           }
-          onClick={() => bannerUrl && setPreviewImage(bannerUrl)}
+          onClick={() => bannerSrc && setPreviewImage(bannerSrc)}
         />
         <div className="profile-hero-gradient" />
 
@@ -264,11 +275,11 @@ function Profile() {
             <div className="profile-hero-avatarWrap">
               <div
                 className="profile-hero-avatar"
-                onClick={() => avatarUrl && setPreviewImage(avatarUrl)}
-                style={{ cursor: avatarUrl ? "zoom-in" : "default" }}
+                onClick={() => avatarSrc && setPreviewImage(avatarSrc)}
+                style={{ cursor: avatarSrc ? "zoom-in" : "default" }}
               >
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={displayName} />
+                {avatarSrc ? (
+                  <img src={avatarSrc} alt={displayName} />
                 ) : (
                   <span>{displayName.charAt(0).toUpperCase()}</span>
                 )}
@@ -310,10 +321,10 @@ function Profile() {
           <button
             type="button"
             className="profile-showcase__imageFrame"
-            onClick={() => showcaseImageUrl && setPreviewImage(showcaseImageUrl)}
+            onClick={() => showcaseSrc && setPreviewImage(showcaseSrc)}
           >
-            {showcaseImageUrl ? (
-              <img src={showcaseImageUrl} alt={`Destaque de ${displayName}`} />
+            {showcaseSrc ? (
+              <img src={showcaseSrc} alt={`Destaque de ${displayName}`} />
             ) : (
               <div className="profile-showcase__placeholder">
                 Adicione uma imagem personalizada nas configuracoes

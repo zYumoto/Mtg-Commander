@@ -1,0 +1,8 @@
+
+> mtg-commander-back@1.0.0 start
+> node server.js
+
+[dotenv@17.2.3] injecting env (7) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+Supabase configurado para persistencia
+🚀 Servidor rodando na porta 4000
+🔌 Cliente conectado: lQV2HVDYWUHIGs8KAAAB
