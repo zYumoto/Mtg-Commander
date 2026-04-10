@@ -155,6 +155,26 @@ function EditDeck() {
   const commanderPreviewUrl = useMemo(() => getCardImageUrl(commander.trim()), [commander]);
 
   useEffect(() => {
+    const trimmedQuery = searchQuery.trim();
+    if (builderMode !== "visual") return;
+
+    if (trimmedQuery.length < 2) {
+      setSearchResults([]);
+      setSearchError("");
+      setSearchingCards(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      handleSearchCards(trimmedQuery);
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [builderMode, searchQuery]);
+
+  useEffect(() => {
     const trimmedCommander = commander.trim();
     if (!trimmedCommander) return;
 
@@ -247,15 +267,16 @@ function EditDeck() {
     setCommanderCard(card);
   }
 
-  async function handleSearchCards(e) {
-    e?.preventDefault?.();
-    if (!searchQuery.trim()) return;
+  async function handleSearchCards(queryOverride) {
+    const finalQuery =
+      typeof queryOverride === "string" ? queryOverride.trim() : searchQuery.trim();
+    if (!finalQuery) return;
 
     setSearchingCards(true);
     setSearchError("");
 
     try {
-      const query = `${searchQuery.trim()} game:paper`;
+      const query = `${finalQuery} game:paper`;
       const res = await fetch(
         `${API_URL}/api/cards/search?q=${encodeURIComponent(query)}&order=name&unique=cards`,
         {
@@ -494,8 +515,8 @@ function EditDeck() {
                   <span>Busca</span>
                   <h2>Procure e arraste cartas</h2>
                   <p>
-                    Busque uma carta, arraste para o comandante ou solte na lista do deck para
-                    adicionar uma copia.
+                    Digite o inicio do nome da carta para receber sugestoes. Depois arraste para
+                    o comandante ou solte na lista do deck.
                   </p>
                 </div>
 
@@ -504,7 +525,7 @@ function EditDeck() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Pesquisar carta no Scryfall"
+                    placeholder="Ex: Sol, Command, Atraxa..."
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -515,7 +536,7 @@ function EditDeck() {
                   <button
                     type="button"
                     disabled={searchingCards}
-                    onClick={handleSearchCards}
+                    onClick={() => handleSearchCards()}
                   >
                     {searchingCards ? "Buscando..." : "Buscar"}
                   </button>
@@ -525,7 +546,9 @@ function EditDeck() {
 
                 {searchResults.length === 0 ? (
                   <div className="deckshell__emptyState deckshell__emptyState--compact">
-                    Busque uma carta para começar a montar visualmente.
+                    {searchQuery.trim().length < 2
+                      ? "Digite pelo menos 2 letras para ver recomendacoes."
+                      : "Nenhuma sugestao encontrada para essa busca."}
                   </div>
                 ) : (
                   <div className="deckshell__searchResults">
