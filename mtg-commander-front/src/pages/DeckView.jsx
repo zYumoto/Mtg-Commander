@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { API_URL } from "../config.js";
+import "./DecksPage.css";
 
 function DeckView() {
   const { id } = useParams();
@@ -20,9 +21,9 @@ function DeckView() {
   useEffect(() => {
     async function fetchDeck() {
       if (!token || !id) return;
+
       setLoadingDeck(true);
       try {
-        // 👇 agora usamos a rota simples /decks/:id
         const res = await fetch(`${API_URL}/decks/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -33,7 +34,7 @@ function DeckView() {
         if (!res.ok) throw new Error(data.error || "Erro ao carregar deck");
         setDeck(data);
       } catch (err) {
-        setError(err.message);
+        setError(err.message || "Erro ao carregar deck");
       } finally {
         setLoadingDeck(false);
       }
@@ -41,6 +42,12 @@ function DeckView() {
 
     fetchDeck();
   }, [token, id]);
+
+  const cards = deck?.cards || [];
+  const totalCards = useMemo(
+    () => cards.reduce((sum, card) => sum + (card.quantity || 0), 0),
+    [cards]
+  );
 
   if (loading || loadingDeck) {
     return (
@@ -52,84 +59,127 @@ function DeckView() {
 
   if (error) {
     return (
-      <section className="page-center">
-        <p style={{ color: "#ff6b6b" }}>{error}</p>
-        <Link
-          to="/decks"
-          style={{ marginTop: "1rem", display: "inline-block" }}
-        >
-          ← Voltar para Meus Decks
-        </Link>
+      <section className="deckshell deckshell--narrow">
+        <div className="deckshell__wrap">
+          <div className="deckshell__emptyState">{error}</div>
+          <div className="deckshell__footer">
+            <Link to="/decks" className="deckshell__ghostLink">
+              Voltar para Meus Decks
+            </Link>
+          </div>
+        </div>
       </section>
     );
   }
 
   if (!deck) return null;
 
-  // só por conferência: deck.cards deve ser [{ name, quantity }]
-  const cards = deck.cards || [];
+  const commanderImage = deck.commander
+    ? `https://api.scryfall.com/cards/named?format=image&version=art_crop&fuzzy=${encodeURIComponent(
+        deck.commander
+      )}`
+    : "";
 
   return (
-    <section className="page-center" style={{ maxWidth: "1100px" }}>
-      <h2>{deck.name}</h2>
-      <p>
-        Comandante: <strong>{deck.commander || "Não definido"}</strong>
-      </p>
-
-      <div style={{ margin: "0.5rem 0 1rem" }}>
-        <Link to="/decks">← Voltar para Meus Decks</Link>{" "}
-        <span style={{ marginLeft: "1rem", fontSize: "0.9rem", opacity: 0.8 }}>
-          {cards.length} tipos de carta
-        </span>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-          gap: "1rem",
-        }}
-      >
-        {cards.map((c, index) => {
-          // limpa o nome pra casos tipo "Card Name (EOC)" etc
-          const cleanName = (c.name || "")
-            .replace(/\s+\(.*\)$/, "") // remove sufixo entre parênteses
-            .trim();
-
-          const imgSrc = `https://api.scryfall.com/cards/named?format=image&fuzzy=${encodeURIComponent(
-            cleanName
-          )}`;
-
-          return (
-            <div
-              key={`${c.name}-${index}`}
-              style={{
-                background: "#141424",
-                borderRadius: "0.75rem",
-                padding: "0.5rem",
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontSize: "0.85rem", marginBottom: "0.25rem" }}>
-                <strong>{c.quantity || 1}x</strong> {c.name}
-              </div>
-
-              <img
-                src={imgSrc}
-                alt={c.name}
-                style={{
-                  width: "100%",
-                  borderRadius: "0.5rem",
-                  marginBottom: "0.25rem",
-                }}
-                onError={(e) => {
-                  // se mesmo assim não achar, some a imagem
-                  e.currentTarget.style.display = "none";
-                }}
-              />
+    <section className="deckshell">
+      <div className="deckshell__wrap">
+        <div className="deckshell__hero">
+          <div className="deckshell__heroTopline">Deck showcase</div>
+          <div className="deckshell__heroBar">
+            <div>
+              <h1>{deck.name}</h1>
+              <p>
+                Comandante: <strong>{deck.commander || "Nao definido"}</strong>
+              </p>
             </div>
-          );
-        })}
+
+            <div className="deckshell__heroActions">
+              <Link to="/decks" className="deckshell__ghostLink">
+                Voltar para Meus Decks
+              </Link>
+              <Link
+                to={`/decks/${deck._id}/edit`}
+                className="deckshell__ghostLink"
+              >
+                Editar deck
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="deckshell__builderGrid deckshell__builderGrid--view">
+          <div className="deckshell__panel deckshell__panel--hero">
+            <div className="deckshell__sectionHead deckshell__sectionHead--compact">
+              <span>Resumo</span>
+              <h2>Identidade do deck</h2>
+              <p>Visao rapida do comandante e da lista carregada.</p>
+            </div>
+
+            <div className="deckshell__summaryCards">
+              <article className="deckshell__summaryCard">
+                <span>Tipos de carta</span>
+                <strong>{cards.length}</strong>
+              </article>
+              <article className="deckshell__summaryCard">
+                <span>Total informado</span>
+                <strong>{totalCards}</strong>
+              </article>
+            </div>
+
+            <div className="deckshell__commanderCard">
+              {commanderImage ? (
+                <img
+                  src={commanderImage}
+                  alt={deck.commander}
+                  className="deckshell__commanderImage"
+                />
+              ) : (
+                <div className="deckshell__emptyState">Sem comandante definido.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="deckshell__panel">
+            <div className="deckshell__sectionHead deckshell__sectionHead--compact">
+              <span>Lista</span>
+              <h2>Cartas cadastradas</h2>
+              <p>Cartas e quantidades conforme foram salvas no deck.</p>
+            </div>
+
+            <div className="deckshell__cardsGrid">
+              {cards.map((card, index) => {
+                const cleanName = (card.name || "")
+                  .replace(/\s+\(.*\)$/, "")
+                  .trim();
+
+                const imageSrc = `https://api.scryfall.com/cards/named?format=image&fuzzy=${encodeURIComponent(
+                  cleanName
+                )}`;
+
+                return (
+                  <article
+                    key={`${card.name}-${index}`}
+                    className="deckshell__cardTile"
+                  >
+                    <div className="deckshell__cardTileHeader">
+                      <strong>{card.quantity || 1}x</strong>
+                      <span>{card.name}</span>
+                    </div>
+
+                    <img
+                      src={imageSrc}
+                      alt={card.name}
+                      className="deckshell__cardTileImage"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );

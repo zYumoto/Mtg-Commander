@@ -1,25 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { API_URL } from "../config.js";
+import "./DecksPage.css";
 
-// Converte o texto da lista em [{ name, quantity }]
 function parseDeckText(deckText) {
   const lines = deckText
     .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith("//"));
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("//"));
 
   const cards = [];
 
   for (const line of lines) {
     const match = line.match(/^(\d+)x?\s+(.+)$/i);
     if (match) {
-      const quantity = parseInt(match[1], 10);
-      const name = match[2].trim();
-      cards.push({ name, quantity });
+      cards.push({
+        quantity: Number.parseInt(match[1], 10),
+        name: match[2].trim(),
+      });
     } else {
-      // se não tiver número, considera 1
       cards.push({ name: line, quantity: 1 });
     }
   }
@@ -29,12 +29,12 @@ function parseDeckText(deckText) {
 
 function buildDeckText(cards) {
   return (cards || [])
-    .map((c) => `${c.quantity || 1} ${c.name}`)
+    .map((card) => `${card.quantity || 1} ${card.name}`)
     .join("\n");
 }
 
 function EditDeck() {
-  const { id } = useParams(); // se tem id = edição; se não = novo
+  const { id } = useParams();
   const isNew = !id;
   const { token, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
@@ -46,56 +46,51 @@ function EditDeck() {
   const [error, setError] = useState("");
   const [nameTouched, setNameTouched] = useState(false);
 
-  // se não estiver logado, manda pro login
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       navigate("/login");
     }
   }, [loading, isAuthenticated, navigate]);
 
-  // carrega deck se for edição
   useEffect(() => {
     async function fetchDeck() {
       if (!id || !token) return;
+
       try {
         const res = await fetch(`${API_URL}/decks/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Erro ao carregar deck");
+
         setName(data.name || "");
         setCommander(data.commander || "");
         setDeckText(buildDeckText(data.cards || []));
       } catch (err) {
-        setError(err.message);
+        setError(err.message || "Erro ao carregar deck");
       }
     }
+
     fetchDeck();
   }, [id, token]);
 
-  // parse dinâmico da lista
   const parsedCards = useMemo(() => parseDeckText(deckText), [deckText]);
-
   const totalCards = useMemo(
-    () =>
-      parsedCards.reduce(
-        (sum, c) => sum + (Number(c.quantity) || 0),
-        0
-      ),
+    () => parsedCards.reduce((sum, card) => sum + (Number(card.quantity) || 0), 0),
     [parsedCards]
   );
 
-  // sugerir nome do deck a partir do comandante
   useEffect(() => {
-    const cmd = commander.trim();
-    if (!cmd) return;
+    const trimmedCommander = commander.trim();
+    if (!trimmedCommander) return;
 
     if (!nameTouched || !name.trim()) {
-      setName(`${cmd} – Commander`);
+      setName(`${trimmedCommander} - Commander`);
     }
-  }, [commander]); // leitura de name/nameTouched é suficiente assim
+  }, [commander, name, nameTouched]);
 
   async function handleSave(e) {
     e.preventDefault();
@@ -115,27 +110,21 @@ function EditDeck() {
       }
 
       if (totalCards === 0) {
-        throw new Error("A lista de cartas está vazia.");
+        throw new Error("A lista de cartas esta vazia.");
       }
 
-      // AQUI: commander separado → 99 cartas na lista
       if (totalCards !== 99) {
-  alert(`Seu deck tem ${totalCards} cartas — Commander exige 99.`);
-  return;
-}
-
-
-      const cards = parsedCards;
+        alert(`Seu deck tem ${totalCards} cartas. Commander exige 99.`);
+        return;
+      }
 
       const payload = {
         name: cleanName,
         commander: cleanCommander,
-        cards,
+        cards: parsedCards,
       };
 
-      const url = isNew
-        ? `${API_URL}/decks`
-        : `${API_URL}/decks/${id}`;
+      const url = isNew ? `${API_URL}/decks` : `${API_URL}/decks/${id}`;
       const method = isNew ? "POST" : "PUT";
 
       const res = await fetch(url, {
@@ -152,7 +141,7 @@ function EditDeck() {
 
       navigate("/decks");
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Erro ao salvar deck");
     } finally {
       setSaving(false);
     }
@@ -167,190 +156,146 @@ function EditDeck() {
   }
 
   return (
-    <section
-      className="page-center"
-      style={{ maxWidth: "1100px", textAlign: "left" }}
-    >
-      <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-        {isNew ? "Criar novo deck" : "Editar deck"}
-      </h2>
-      <p style={{ textAlign: "center", marginBottom: "1rem", opacity: 0.8 }}>
-        Deck de Commander = 99 cartas na lista + 1 comandante separado.
-      </p>
+    <section className="deckshell">
+      <div className="deckshell__wrap">
+        <div className="deckshell__hero">
+          <div className="deckshell__heroTopline">Deck builder</div>
+          <div className="deckshell__heroBar">
+            <div>
+              <h1>{isNew ? "Criar novo deck" : "Editar deck"}</h1>
+              <p>
+                Deck de Commander = 99 cartas na lista + 1 comandante separado.
+              </p>
+            </div>
 
-      <form onSubmit={handleSave} className="form-card">
-        {/* NOME DO DECK */}
-        <label style={{ display: "block", marginBottom: "0.75rem" }}>
-          Nome do deck:
-          <input
-            type="text"
-            placeholder="Ex: Atraxa Superfriends"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              setNameTouched(true);
-            }}
-            style={{ marginTop: "0.25rem" }}
-          />
-        </label>
+            <div className="deckshell__heroActions">
+              <Link to="/decks" className="deckshell__ghostLink">
+                Voltar para Meus Decks
+              </Link>
+            </div>
+          </div>
+        </div>
 
-        {/* COMANDANTE */}
-        <label style={{ display: "block", marginBottom: "0.75rem" }}>
-          Comandante:
-          <input
-            type="text"
-            placeholder="Nome do comandante"
-            value={commander}
-            onChange={(e) => setCommander(e.target.value)}
-            style={{ marginTop: "0.25rem" }}
-          />
-        </label>
+        <form onSubmit={handleSave} className="deckshell__formCard form-card">
+          <div className="deckshell__sectionHead">
+            <span>Identidade</span>
+            <h2>Informacoes principais</h2>
+            <p>Defina o nome do deck e o comandante antes de montar a lista.</p>
+          </div>
 
-        {/* GRID: LISTA + PREVIEW SIMPLES */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1.1fr)",
-            gap: "1rem",
-            alignItems: "flex-start",
-          }}
-        >
-          {/* LISTA DE CARTAS */}
-          <div>
-            <label>
-              Lista de cartas (99):
-              <textarea
-                rows={14}
-                style={{
-                  width: "100%",
-                  marginTop: "0.25rem",
-                  padding: "0.5rem 0.75rem",
-                  borderRadius: "0.5rem",
-                  border: "1px solid #30304a",
-                  background: "#10101a",
-                  color: "#f5f5f5",
-                  fontFamily: "monospace",
-                  fontSize: "0.9rem",
-                  resize: "vertical",
+          <div className="deckshell__fieldGrid">
+            <label className="deckshell__field">
+              <span>Nome do deck</span>
+              <input
+                type="text"
+                placeholder="Ex: Atraxa Superfriends"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setNameTouched(true);
                 }}
-                placeholder={`Exemplo:\n1 Sol Ring\n1 Command Tower\n10 Plains\n10 Island\n...`}
-                value={deckText}
-                onChange={(e) => setDeckText(e.target.value)}
               />
             </label>
 
-            {/* CONTADOR DE CARTAS */}
-            <div
-              style={{
-                marginTop: "0.4rem",
-                fontSize: "0.85rem",
-                opacity: 0.9,
-              }}
-            >
-              Cartas na lista:{" "}
-              <strong
-                style={{
-                  color:
+            <label className="deckshell__field">
+              <span>Comandante</span>
+              <input
+                type="text"
+                placeholder="Nome do comandante"
+                value={commander}
+                onChange={(e) => setCommander(e.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="deckshell__builderGrid">
+            <div className="deckshell__panel">
+              <div className="deckshell__sectionHead deckshell__sectionHead--compact">
+                <span>Lista</span>
+                <h2>Cartas do deck</h2>
+                <p>
+                  Aceita `4 Lightning Bolt` ou `4x Lightning Bolt`. Linhas com
+                  `//` sao ignoradas.
+                </p>
+              </div>
+
+              <label className="deckshell__field">
+                <span>Lista de cartas (99)</span>
+                <textarea
+                  rows={16}
+                  className="deckshell__textarea deckshell__textarea--mono"
+                  placeholder={`Exemplo:\n1 Sol Ring\n1 Command Tower\n10 Plains\n10 Island\n...`}
+                  value={deckText}
+                  onChange={(e) => setDeckText(e.target.value)}
+                />
+              </label>
+
+              <div className="deckshell__counterRow">
+                <span>Cartas na lista</span>
+                <strong
+                  className={
                     totalCards === 99
-                      ? "#4ade80" // verde
-                      : totalCards === 100
-                      ? "#f87171" // vermelho
-                      : "#facc15", // amarelo
-                }}
-              >
-                {totalCards}
-              </strong>{" "}
-              / 99
+                      ? "isValid"
+                      : totalCards > 99
+                      ? "isError"
+                      : "isWarn"
+                  }
+                >
+                  {totalCards} / 99
+                </strong>
+              </div>
             </div>
 
-            <p
-              style={{
-                marginTop: "0.15rem",
-                fontSize: "0.8rem",
-                opacity: 0.75,
-              }}
-            >
-              Formatos aceitos: <code>4 Lightning Bolt</code> ou{" "}
-              <code>4x Lightning Bolt</code>. Linhas começando com{" "}
-              <code>//</code> são ignoradas.
-            </p>
-          </div>
+            <div className="deckshell__panel">
+              <div className="deckshell__sectionHead deckshell__sectionHead--compact">
+                <span>Resumo</span>
+                <h2>Preview rapido</h2>
+                <p>Uma leitura direta da lista para revisar nome e quantidade.</p>
+              </div>
 
-          {/* PREVIEW RÁPIDO (NOME + QUANTIDADE) */}
-          <div>
-            <div
-              style={{
-                marginBottom: "0.35rem",
-                fontSize: "0.9rem",
-                opacity: 0.85,
-              }}
-            >
-              Preview rápido:
+              <div className="deckshell__summaryCards">
+                <article className="deckshell__summaryCard">
+                  <span>Deck</span>
+                  <strong>{name.trim() || "Sem nome definido"}</strong>
+                </article>
+                <article className="deckshell__summaryCard">
+                  <span>Comandante</span>
+                  <strong>{commander.trim() || "Nao definido"}</strong>
+                </article>
+              </div>
+
+              {parsedCards.length === 0 ? (
+                <div className="deckshell__emptyState">
+                  Digite sua lista para ver um resumo aqui.
+                </div>
+              ) : (
+                <div className="deckshell__previewList">
+                  {parsedCards.map((card, index) => (
+                    <div
+                      key={`${card.name}-${index}`}
+                      className="deckshell__previewRow"
+                    >
+                      <span>{card.name}</span>
+                      <strong>{card.quantity || 1}x</strong>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-
-            {parsedCards.length === 0 ? (
-              <div
-                style={{
-                  borderRadius: "0.75rem",
-                  border: "1px dashed #3b3b5f",
-                  padding: "1rem",
-                  fontSize: "0.85rem",
-                  opacity: 0.7,
-                  textAlign: "center",
-                }}
-              >
-                Digite sua lista para ver um resumo aqui.
-              </div>
-            ) : (
-              <div
-                style={{
-                  borderRadius: "0.75rem",
-                  border: "1px solid #26263f",
-                  padding: "0.75rem",
-                  maxHeight: "360px",
-                  overflowY: "auto",
-                  background: "#050515",
-                  fontSize: "0.85rem",
-                }}
-              >
-                {parsedCards.map((c, index) => (
-                  <div
-                    key={`${c.name}-${index}`}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      borderBottom: "1px solid rgba(148, 163, 184, 0.2)",
-                      padding: "2px 0",
-                    }}
-                  >
-                    <span>{c.name}</span>
-                    <strong>{c.quantity || 1}x</strong>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
-        </div>
 
-        {/* ERRO + BOTÃO SALVAR */}
-        {error && (
-          <p
-            style={{
-              color: "#ff6b6b",
-              fontSize: "0.85rem",
-              marginTop: "0.75rem",
-            }}
-          >
-            {error}
-          </p>
-        )}
+          {error && <p className="feedback-text">{error}</p>}
 
-        <div style={{ marginTop: "1rem", textAlign: "right" }}>
-          <button type="submit" disabled={saving}>
-            {saving ? "Salvando..." : "Salvar deck"}
-          </button>
-        </div>
-      </form>
+          <div className="deckshell__footer">
+            <Link to="/decks" className="deckshell__ghostLink">
+              Cancelar
+            </Link>
+            <button type="submit" disabled={saving}>
+              {saving ? "Salvando..." : "Salvar deck"}
+            </button>
+          </div>
+        </form>
+      </div>
     </section>
   );
 }
