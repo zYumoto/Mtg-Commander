@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./LobbyFull.css";
 import RightSidebar from "../components/RightSidebar.jsx";
 import FriendsModal from "../components/FriendsModal.jsx";
+import SettingsModal from "../components/SettingsModal.jsx";
 import { API_URL } from "../config.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useGame } from "../context/GameContext.jsx";
@@ -15,6 +16,7 @@ export default function Lobby() {
   const [search, setSearch] = useState("");
   const [friends, setFriends] = useState([]);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
 
   const displayName =
@@ -219,6 +221,7 @@ export default function Lobby() {
             avatarText={avatarText}
             avatarUrl={user?.avatarUrl || ""}
             friends={friends}
+            onOpenSettings={() => setSettingsOpen(true)}
             onOpenDecks={() => navigate("/decks")}
             onOpenFriends={() => setFriendsOpen(true)}
             onOpenProfile={() => navigate("/profile")}
@@ -231,6 +234,10 @@ export default function Lobby() {
         open={friendsOpen}
         onClose={() => setFriendsOpen(false)}
         onChanged={setFriends}
+      />
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
       />
     </div>
   );

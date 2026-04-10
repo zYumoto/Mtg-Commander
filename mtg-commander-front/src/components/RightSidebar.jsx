@@ -7,6 +7,7 @@ export default function RightSidebar({
   avatarText = "J",
   avatarUrl = "",
   friends = [],
+  onOpenSettings,
   onOpenDecks,
   onOpenFriends,
   onOpenProfile,
@@ -71,10 +72,18 @@ export default function RightSidebar({
 
         <button
           type="button"
+          className="rsb__settingsBtn"
+          onClick={onOpenSettings}
+        >
+          CONFIGURACOES
+        </button>
+
+        <button
+          type="button"
           className="rsb__logout"
           onClick={onLogout}
         >
-          CONFIGURAÇÕES
+          SAIR DA CONTA
         </button>
       </div>
     </aside>

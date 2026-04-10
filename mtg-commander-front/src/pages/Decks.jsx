@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import RightSidebar from "../components/RightSidebar.jsx";
+import SettingsModal from "../components/SettingsModal.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { API_URL } from "../config.js";
 import "./DecksPage.css";
@@ -10,6 +11,7 @@ function Decks() {
   const navigate = useNavigate();
   const [decks, setDecks] = useState([]);
   const [friends, setFriends] = useState([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [loadingDecks, setLoadingDecks] = useState(true);
   const [error, setError] = useState("");
 
@@ -293,12 +295,17 @@ function Decks() {
             avatarText={avatarText}
             avatarUrl={user?.avatarUrl || ""}
             friends={friends}
+            onOpenSettings={() => setSettingsOpen(true)}
             onOpenDecks={() => navigate("/decks")}
             onOpenFriends={() => navigate("/friends")}
             onOpenProfile={() => navigate("/profile")}
             onLogout={onLogout}
           />
         </div>
+        <SettingsModal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+        />
       </div>
     </div>
   );

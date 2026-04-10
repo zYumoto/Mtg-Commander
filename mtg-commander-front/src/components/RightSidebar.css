@@ -75,15 +75,22 @@
   white-space: nowrap;
 }
 
-.rsb__btn{
+.rsb__btn,
+.rsb__settingsBtn,
+.rsb__logout{
   height: 44px;
   border-radius: 8px;
-  border: 1px solid rgba(80,95,190,.2);
-  background: rgba(27,34,68,.68);
-  color: #e6e8ee;
   cursor: pointer;
   font-weight: 650;
   margin-top: 0;
+  box-shadow: none;
+  font-size: 12px;
+}
+
+.rsb__btn{
+  border: 1px solid rgba(80,95,190,.2);
+  background: rgba(27,34,68,.68);
+  color: #e6e8ee;
 }
 
 .rsb__btn:hover{
@@ -173,27 +180,22 @@
   opacity: .9;
 }
 
-.rsb__settings{
-  margin-top: auto;
-  font-size: 0;
+.rsb__settingsBtn{
+  border: 1px solid rgba(231, 195, 106, 0.34);
+  background: rgba(231, 195, 106, 0.08);
+  color: #e7c36a;
+}
+
+.rsb__settingsBtn:hover{
+  background: rgba(231, 195, 106, 0.16);
+  color: #fff7df;
 }
 
 .rsb__logout{
-  height: 44px;
-  border-radius: 8px;
   border: 1px solid rgba(240, 193, 75, 0.34);
   background: transparent;
   color: #d9def7;
-  cursor: pointer;
-  font-weight: 650;
-  margin-top: auto;
-  box-shadow: none;
-  font-size: 0;
-}
-
-.rsb__logout::after{
-  content: "SAIR DA CONTA";
-  font-size: 12px;
+  margin-top: 0;
 }
 
 .rsb__logout:hover{
@@ -239,7 +241,6 @@
   }
 }
 
-/* Premium lobby sidebar alignment */
 .rsb {
   border-radius: 14px;
   padding: 1px;
@@ -294,6 +295,11 @@
 .rsb__dot {
   background: #40d58b;
   box-shadow: 0 0 0 3px rgba(64, 213, 139, 0.14);
+}
+
+.rsb__settingsBtn {
+  border-color: rgba(231, 195, 106, 0.34);
+  color: #e7c36a;
 }
 
 .rsb__logout {
