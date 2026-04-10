@@ -84,6 +84,7 @@ function createSearchCard(card) {
     typeLine: card.type_line || card.card_faces?.[0]?.type_line || "",
     manaCost: card.mana_cost || card.card_faces?.[0]?.mana_cost || "",
     setName: card.set_name || "",
+    setCode: (card.set || "").toUpperCase(),
   };
 }
 
@@ -119,6 +120,8 @@ function EditDeck() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchingCards, setSearchingCards] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [setFilter, setSetFilter] = useState("all");
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -168,6 +171,35 @@ function EditDeck() {
 
   const commanderPreviewUrl = useMemo(() => getCardImageUrl(commander.trim()), [commander]);
 
+  const availableTypeFilters = useMemo(() => {
+    const types = new Set();
+    searchResults.forEach((card) => {
+      const majorType = (card.typeLine || "").split("—")[0].trim();
+      if (majorType) types.add(majorType);
+    });
+    return Array.from(types).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [searchResults]);
+
+  const availableSetFilters = useMemo(() => {
+    const sets = new Map();
+    searchResults.forEach((card) => {
+      if (!card.setName) return;
+      sets.set(card.setName, card.setCode || card.setName);
+    });
+    return Array.from(sets.entries())
+      .map(([name, code]) => ({ name, code }))
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }, [searchResults]);
+
+  const filteredSearchResults = useMemo(() => {
+    return searchResults.filter((card) => {
+      const majorType = (card.typeLine || "").split("—")[0].trim();
+      const matchesType = typeFilter === "all" || majorType === typeFilter;
+      const matchesSet = setFilter === "all" || card.setName === setFilter;
+      return matchesType && matchesSet;
+    });
+  }, [searchResults, typeFilter, setFilter]);
+
   useEffect(() => {
     const trimmedQuery = searchQuery.trim();
     if (builderMode !== "visual") return;
@@ -196,6 +228,11 @@ function EditDeck() {
       setName(`${trimmedCommander} - Commander`);
     }
   }, [commander, name, nameTouched]);
+
+  useEffect(() => {
+    setTypeFilter("all");
+    setSetFilter("all");
+  }, [searchResults]);
 
   function syncDeckFromText(nextText) {
     setDeckText(nextText);
@@ -243,6 +280,9 @@ function EditDeck() {
 
   function setCommanderCard(card) {
     setCommander(card.name);
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearchError("");
   }
 
   function handleDragStart(card, source) {
@@ -540,8 +580,8 @@ function EditDeck() {
                   <span>Busca</span>
                   <h2>Procure e arraste cartas</h2>
                   <p>
-                    Digite o inicio do nome da carta para receber sugestoes. Depois arraste para
-                    o comandante ou solte na lista do deck.
+                    Digite o nome, refine se precisar e arraste para o deck. Se ainda nao houver
+                    comandante, voce pode definir um por aqui.
                   </p>
                 </div>
 
@@ -567,17 +607,55 @@ function EditDeck() {
                   </button>
                 </div>
 
+                <div className="deckshell__searchControls">
+                  <label className="deckshell__filterField">
+                    <span>Tipo</span>
+                    <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+                      <option value="all">Todos</option>
+                      {availableTypeFilters.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="deckshell__filterField">
+                    <span>Colecao</span>
+                    <select value={setFilter} onChange={(e) => setSetFilter(e.target.value)}>
+                      <option value="all">Todas</option>
+                      {availableSetFilters.map((set) => (
+                        <option key={set.name} value={set.name}>
+                          {set.name} {set.code ? `(${set.code})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                {commander.trim() ? (
+                  <div className="deckshell__inlineNotice">
+                    Comandante atual: <strong>{commander.trim()}</strong>
+                  </div>
+                ) : (
+                  <div className="deckshell__inlineNotice deckshell__inlineNotice--muted">
+                    Nenhum comandante definido ainda.
+                  </div>
+                )}
+
                 {searchError && <p className="feedback-text">{searchError}</p>}
 
-                {searchResults.length === 0 ? (
+                {filteredSearchResults.length === 0 ? (
                   <div className="deckshell__emptyState deckshell__emptyState--compact">
                     {searchQuery.trim().length < 2
                       ? "Digite pelo menos 2 letras para ver recomendacoes."
-                      : "Nenhuma sugestao encontrada para essa busca."}
+                      : searchResults.length === 0
+                        ? "Nenhuma sugestao encontrada para essa busca."
+                        : "Nenhuma carta corresponde aos filtros selecionados."}
                   </div>
                 ) : (
                   <div className="deckshell__searchResults">
-                    {searchResults.map((card) => (
+                    {filteredSearchResults.map((card) => (
                       <article
                         key={card.name}
                         className="deckshell__searchCard"
@@ -589,13 +667,17 @@ function EditDeck() {
                           <strong>{card.name}</strong>
                           <span>{card.typeLine || "Carta"}</span>
                           <small>
-                            {[card.manaCost, card.setName].filter(Boolean).join("  •  ") || "MTG"}
+                            {[card.manaCost, card.setName, card.setCode]
+                              .filter(Boolean)
+                              .join("  •  ") || "MTG"}
                           </small>
                         </div>
                         <div className="deckshell__searchActions">
-                          <button type="button" onClick={() => setCommanderCard(card)}>
-                            Comandante
-                          </button>
+                          {!commander.trim() && (
+                            <button type="button" onClick={() => setCommanderCard(card)}>
+                              Definir comandante
+                            </button>
+                          )}
                           <button type="button" onClick={() => addCardToDeck(card)}>
                             Adicionar
                           </button>
@@ -611,8 +693,8 @@ function EditDeck() {
                   <span>Montagem visual</span>
                   <h2>Arraste para construir</h2>
                   <p>
-                    Solte uma carta no quadro do comandante ou na lista abaixo. Cada drop no
-                    deck adiciona uma copia.
+                    Comandante no topo, deck logo abaixo. Cada carta solta no deck adiciona uma
+                    copia.
                   </p>
                 </div>
 
