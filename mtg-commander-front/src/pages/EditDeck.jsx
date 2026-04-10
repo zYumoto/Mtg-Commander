@@ -88,6 +88,17 @@ function createSearchCard(card) {
   };
 }
 
+const CARD_TYPE_OPTIONS = [
+  "Creature",
+  "Artifact",
+  "Enchantment",
+  "Instant",
+  "Sorcery",
+  "Planeswalker",
+  "Land",
+  "Battle",
+];
+
 async function readJsonResponse(response) {
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
@@ -170,15 +181,6 @@ function EditDeck() {
   );
 
   const commanderPreviewUrl = useMemo(() => getCardImageUrl(commander.trim()), [commander]);
-
-  const availableTypeFilters = useMemo(() => {
-    const types = new Set();
-    searchResults.forEach((card) => {
-      const majorType = (card.typeLine || "").split("—")[0].trim();
-      if (majorType) types.add(majorType);
-    });
-    return Array.from(types).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [searchResults]);
 
   const availableSetFilters = useMemo(() => {
     const sets = new Map();
@@ -459,7 +461,6 @@ function EditDeck() {
           <div className="deckshell__sectionHead">
             <span>Identidade</span>
             <h2>Informacoes principais</h2>
-            <p>Defina o nome do deck e o comandante antes de montar a lista.</p>
           </div>
 
           <div className="deckshell__fieldGrid">
@@ -579,10 +580,6 @@ function EditDeck() {
                 <div className="deckshell__sectionHead deckshell__sectionHead--compact">
                   <span>Busca</span>
                   <h2>Procure e arraste cartas</h2>
-                  <p>
-                    Digite o nome, refine se precisar e arraste para o deck. Se ainda nao houver
-                    comandante, voce pode definir um por aqui.
-                  </p>
                 </div>
 
                 <div className="deckshell__searchBar">
@@ -612,7 +609,7 @@ function EditDeck() {
                     <span>Tipo</span>
                     <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
                       <option value="all">Todos</option>
-                      {availableTypeFilters.map((type) => (
+                      {CARD_TYPE_OPTIONS.map((type) => (
                         <option key={type} value={type}>
                           {type}
                         </option>
@@ -632,16 +629,6 @@ function EditDeck() {
                     </select>
                   </label>
                 </div>
-
-                {commander.trim() ? (
-                  <div className="deckshell__inlineNotice">
-                    Comandante atual: <strong>{commander.trim()}</strong>
-                  </div>
-                ) : (
-                  <div className="deckshell__inlineNotice deckshell__inlineNotice--muted">
-                    Nenhum comandante definido ainda.
-                  </div>
-                )}
 
                 {searchError && <p className="feedback-text">{searchError}</p>}
 
@@ -692,21 +679,6 @@ function EditDeck() {
                 <div className="deckshell__sectionHead deckshell__sectionHead--compact">
                   <span>Montagem visual</span>
                   <h2>Arraste para construir</h2>
-                  <p>
-                    Comandante no topo, deck logo abaixo. Cada carta solta no deck adiciona uma
-                    copia.
-                  </p>
-                </div>
-
-                <div className="deckshell__summaryCards">
-                  <article className="deckshell__summaryCard">
-                    <span>Deck</span>
-                    <strong>{name.trim() || "Sem nome definido"}</strong>
-                  </article>
-                  <article className="deckshell__summaryCard">
-                    <span>Cartas no deck</span>
-                    <strong>{totalCards} / 99</strong>
-                  </article>
                 </div>
 
                 <div
