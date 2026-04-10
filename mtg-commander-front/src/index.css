@@ -2314,9 +2314,8 @@ button:disabled {
 .profile-uploadButton,
 .profile-clearButton {
   min-height: 42px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-grid;
+  place-items: center;
   padding: 0 14px;
   border-radius: 8px;
   border: 1px solid rgba(231, 195, 106, 0.34);
@@ -2324,6 +2323,7 @@ button:disabled {
   color: #e7c36a;
   font-size: 12px;
   font-weight: 900;
+  line-height: 1;
   margin: 0;
   box-shadow: none;
 }
@@ -2346,6 +2346,7 @@ button:disabled {
 
 .profile-mediaCard {
   display: grid;
+  grid-template-rows: auto 1fr;
   gap: 12px;
   padding: 12px;
   border-radius: 10px;
@@ -2405,7 +2406,8 @@ button:disabled {
 
 .profile-mediaCard__body {
   display: grid;
-  gap: 12px;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
 }
 
 .profile-mediaCard__body strong {
@@ -2419,6 +2421,20 @@ button:disabled {
   color: #9f9789;
   font-size: 12px;
   line-height: 1.5;
+}
+
+.profile-mediaCard .profile-uploadRow {
+  margin-top: auto;
+  align-items: stretch;
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.profile-mediaCard .profile-uploadButton,
+.profile-mediaCard .profile-clearButton {
+  width: 100%;
+  text-align: center;
+  justify-content: center;
 }
 
 .profile-formFooter {

@@ -77,6 +77,13 @@ function Decks() {
     user?.fullName ||
     (user?.email ? user.email.split("@")[0] : "Jogador");
 
+  function getCommanderImage(deck) {
+    if (!deck?.commander) return "";
+    return `https://api.scryfall.com/cards/named?format=image&version=art_crop&fuzzy=${encodeURIComponent(
+      deck.commander
+    )}`;
+  }
+
   return (
     <div className="deckspage">
       <div className="deckspage__wrap">
@@ -86,20 +93,14 @@ function Decks() {
               <div className="deckspage__titlePill">Decks</div>
 
               <section className="deckspage__content">
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: "1rem",
-                    marginBottom: "1rem",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <p style={{ margin: 0, opacity: 0.8 }}>
-                    Seus decks ficam disponiveis para carregar dentro das salas.
-                  </p>
-                  <Link to="/decks/new" className="btn-deck">
+                <div className="deckspage__toolbar">
+                  <div className="deckspage__toolbarIntro">
+                    <span className="deckspage__eyebrow">Meus decks</span>
+                    <p className="deckspage__toolbarText">
+                      Seus decks ficam disponiveis para carregar nas salas.
+                    </p>
+                  </div>
+                  <Link to="/decks/new" className="deckspage__ghostBtn">
                     Criar deck
                   </Link>
                 </div>
@@ -110,6 +111,9 @@ function Decks() {
                   <div className="deckspage__empty">
                     <div className="deckspage__emptyCard">
                       <div className="deckspage__emptyTitle">Carregando decks</div>
+                      <div className="deckspage__emptyText">
+                        Buscando sua colecao para montar a vitrine.
+                      </div>
                     </div>
                   </div>
                 ) : decks.length === 0 ? (
@@ -119,43 +123,80 @@ function Decks() {
                       <div className="deckspage__emptyText">
                         Crie um deck para comecar a jogar Commander.
                       </div>
+                      <Link to="/decks/new" className="deckspage__primaryBtn">
+                        Criar primeiro deck
+                      </Link>
                     </div>
                   </div>
                 ) : (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-                      gap: "1rem",
-                    }}
-                  >
+                  <div className="deckspage__gridCards">
                     {decks.map((deck) => (
-                      <article
-                        key={deck._id}
-                        className="form-card"
-                        style={{ textAlign: "left" }}
-                      >
-                        <div style={{ marginBottom: "0.75rem" }}>
-                          <h3 style={{ marginBottom: "0.35rem" }}>{deck.name}</h3>
-                          <p style={{ margin: 0, opacity: 0.8 }}>
-                            Comandante:{" "}
-                            <strong>{deck.commander || "Nao definido"}</strong>
-                          </p>
-                          <p style={{ margin: "0.35rem 0 0", fontSize: "0.85rem", opacity: 0.75 }}>
-                            {(deck.cards || []).length} tipos de carta
-                          </p>
+                      <article key={deck._id} className="deckspage__deckCard">
+                        <div className="deckspage__deckVisual">
+                          {deck.commander ? (
+                            <img
+                              src={getCommanderImage(deck)}
+                              alt={deck.commander}
+                              className="deckspage__deckImage"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                const next = e.currentTarget.nextElementSibling;
+                                if (next) next.style.display = "grid";
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className="deckspage__commanderFallback"
+                            style={{ display: deck.commander ? "none" : "grid" }}
+                          >
+                            {deck.commander
+                              ? deck.commander.charAt(0).toUpperCase()
+                              : "?"}
+                          </div>
                         </div>
 
-                        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                          <Link to={`/decks/${deck._id}/view`} className="btn-deck">
-                            Ver
-                          </Link>
-                          <Link to={`/decks/${deck._id}/edit`} className="btn-deck">
-                            Editar
-                          </Link>
-                          <button type="button" className="btn-deck" onClick={() => handleDelete(deck._id)}>
-                            Excluir
-                          </button>
+                        <div className="deckspage__deckBody">
+                          <div className="deckspage__deckTop">
+                            <span className="deckspage__deckTag">Commander</span>
+                            <h3 className="deckspage__deckName">{deck.name}</h3>
+                            <p className="deckspage__deckCommander">
+                              <span>Comandante</span>
+                              <strong>{deck.commander || "Nao definido"}</strong>
+                            </p>
+                          </div>
+
+                          <div className="deckspage__deckMeta">
+                            <div>
+                              <strong>{(deck.cards || []).length}</strong>
+                              <span>tipos de carta</span>
+                            </div>
+                            <div>
+                              <strong>{deck.format || "commander"}</strong>
+                              <span>formato</span>
+                            </div>
+                          </div>
+
+                          <div className="deckspage__deckActions">
+                            <Link
+                              to={`/decks/${deck._id}/view`}
+                              className="deckspage__deckBtn"
+                            >
+                              Ver
+                            </Link>
+                            <Link
+                              to={`/decks/${deck._id}/edit`}
+                              className="deckspage__deckBtn"
+                            >
+                              Editar
+                            </Link>
+                            <button
+                              type="button"
+                              className="deckspage__deckBtn deckspage__deckBtn--danger"
+                              onClick={() => handleDelete(deck._id)}
+                            >
+                              Excluir
+                            </button>
+                          </div>
                         </div>
                       </article>
                     ))}
@@ -167,27 +208,24 @@ function Decks() {
 
           <aside className="deckspage__side">
             <div className="deckspage__sideInner">
-              <div className="deckspage__profileRow">
-                <div className="deckspage__avatar">
-                  {(displayName || "?").charAt(0).toUpperCase()}
+              <div className="deckspage__profileCard">
+                <div className="deckspage__profileRow">
+                  <div className="deckspage__avatar">
+                    {(displayName || "?").charAt(0).toUpperCase()}
+                  </div>
+                  <div className="deckspage__profileText">
+                    <span>Perfil ativo</span>
+                    <div className="deckspage__nickPill">{displayName}</div>
+                  </div>
                 </div>
-                <div className="deckspage__nickPill">{displayName}</div>
               </div>
 
               <Link to="/lobby" className="deckspage__sideBtn">
-                VOLTAR AO LOBBY
+                Voltar ao lobby
               </Link>
 
-              <div className="deckspage__friendsBox">
-                <div className="deckspage__friendsHeader">Dica</div>
-                <div className="deckspage__friendsEmpty">
-                  Depois de criar um deck, entre em uma sala e use o painel lateral
-                  para carregar e embaralhar.
-                </div>
-              </div>
-
               <Link to="/profile" className="deckspage__settingsBtn">
-                PERFIL
+                Perfil
               </Link>
             </div>
           </aside>

@@ -2,13 +2,32 @@
 > mtg-commander-back@1.0.0 start
 > node server.js
 
-[dotenv@17.2.3] injecting env (7) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (7) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
 Supabase configurado para persistencia
 🚀 Servidor rodando na porta 4000
-🔌 Cliente conectado: lQV2HVDYWUHIGs8KAAAB
-🔌 Cliente desconectado: lQV2HVDYWUHIGs8KAAAB
-🔌 Cliente conectado: rUA0ENIg94-9_UWAAAAD
-🔌 Cliente desconectado: rUA0ENIg94-9_UWAAAAD
-🔌 Cliente conectado: XBl2j1vaD-mrc81cAAAF
-🔌 Cliente desconectado: XBl2j1vaD-mrc81cAAAF
-🔌 Cliente conectado: rllvh9ASZ9Ekgz-2AAAH
+🔌 Cliente conectado: xxvcolfWR6K8UkbJAAAB
+🎮 Jogador zYumoto entrou na sala UF52Q
+Estado da sala agora: {
+  roomCode: 'UF52Q',
+  players: [
+    {
+      id: 'xxvcolfWR6K8UkbJAAAB',
+      name: 'zYumoto',
+      life: 40,
+      poison: 0,
+      commanderDamage: {},
+      hand: [],
+      commanderCard: null,
+      commanderCastCount: 0,
+      lands: [],
+      battlefield: [],
+      graveyard: [],
+      exile: [],
+      stack: []
+    }
+  ],
+  messages: [],
+  owner: 'zYumoto',
+  startTime: 2026-04-10T03:34:56.880Z,
+  stack: []
+}
