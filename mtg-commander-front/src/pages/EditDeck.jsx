@@ -248,7 +248,7 @@ function EditDeck() {
   }
 
   async function handleSearchCards(e) {
-    e.preventDefault();
+    e?.preventDefault?.();
     if (!searchQuery.trim()) return;
 
     setSearchingCards(true);
@@ -499,17 +499,27 @@ function EditDeck() {
                   </p>
                 </div>
 
-                <form onSubmit={handleSearchCards} className="deckshell__searchBar">
+                <div className="deckshell__searchBar">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Pesquisar carta no Scryfall"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSearchCards();
+                      }
+                    }}
                   />
-                  <button type="submit" disabled={searchingCards}>
+                  <button
+                    type="button"
+                    disabled={searchingCards}
+                    onClick={handleSearchCards}
+                  >
                     {searchingCards ? "Buscando..." : "Buscar"}
                   </button>
-                </form>
+                </div>
 
                 {searchError && <p className="feedback-text">{searchError}</p>}
 
