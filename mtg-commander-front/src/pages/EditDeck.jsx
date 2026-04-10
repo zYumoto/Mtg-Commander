@@ -257,14 +257,19 @@ function EditDeck() {
     try {
       const query = `${searchQuery.trim()} game:paper`;
       const res = await fetch(
-        `https://api.scryfall.com/cards/search?order=name&unique=cards&q=${encodeURIComponent(
-          query
-        )}`
+        `${API_URL}/api/cards/search?q=${encodeURIComponent(query)}&order=name&unique=cards`,
+        {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : undefined,
+        }
       );
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.details || "Erro ao buscar cartas");
+        throw new Error(data.error || data.details || "Erro ao buscar cartas");
       }
 
       setSearchResults((data.data || []).slice(0, 12).map(createSearchCard));
@@ -654,4 +659,5 @@ function EditDeck() {
 }
 
 export default EditDeck;
+
 

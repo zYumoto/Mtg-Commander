@@ -1,4 +1,4 @@
-require("dotenv").config();
+﻿require("dotenv").config();
 
 const express = require("express");
 const http = require("http");
@@ -20,7 +20,7 @@ app.use("/decks", deckRoutes);
 const server = http.createServer(app);
 
 // ======================
-// Conexão com MongoDB
+// ConexÃ£o com MongoDB
 // ======================
 const MONGODB_URI =
   process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/mtg_commander";
@@ -108,10 +108,10 @@ const io = new Server(server, {
   },
 });
 
-// rooms em memória
+// rooms em memÃ³ria
 const rooms = {};
 
-// Função auxiliar para montar estado simplificado
+// FunÃ§Ã£o auxiliar para montar estado simplificado
 function getRoomState(code) {
   const room = rooms[code];
   if (!room) return null;
@@ -127,7 +127,7 @@ function getRoomState(code) {
 }
 
 // ======================
-// Lobby: salas públicas
+// Lobby: salas pÃºblicas
 // ======================
 
 function generateRoomCode(len = 5) {
@@ -136,7 +136,7 @@ function generateRoomCode(len = 5) {
 
 function sanitizeRoomCode(codeRaw) {
   const raw = String(codeRaw || "").trim().toUpperCase();
-  // só A-Z e 0-9, max 8
+  // sÃ³ A-Z e 0-9, max 8
   return raw.replace(/[^A-Z0-9]/g, "").slice(0, 8);
 }
 
@@ -230,17 +230,17 @@ async function syncRoomToDb(code) {
 }
 
 io.on("connection", (socket) => {
-  console.log("🔌 Cliente conectado:", socket.id);
+  console.log("ðŸ”Œ Cliente conectado:", socket.id);
 
   // ======================
-  // Lobby: listar salas públicas
+  // Lobby: listar salas pÃºblicas
   // ======================
   socket.on("list-rooms", () => {
     socket.emit("rooms-list", getPublicRoomsList());
   });
 
   // ======================
-  // Lobby: criar sala (nome, código opcional, pública/privada)
+  // Lobby: criar sala (nome, cÃ³digo opcional, pÃºblica/privada)
   // ======================
   socket.on("create-room", ({ roomName, roomCode, isPublic }) => {
     const raw = roomCode ? String(roomCode) : generateRoomCode();
@@ -248,13 +248,13 @@ io.on("connection", (socket) => {
 
     if (!finalCode) {
       socket.emit("create-room-error", {
-        message: "Código inválido (use letras/números).",
+        message: "CÃ³digo invÃ¡lido (use letras/nÃºmeros).",
       });
       return;
     }
 
     if (rooms[finalCode]) {
-      socket.emit("create-room-error", { message: "Esse código já está em uso." });
+      socket.emit("create-room-error", { message: "Esse cÃ³digo jÃ¡ estÃ¡ em uso." });
       return;
     }
 
@@ -289,14 +289,14 @@ io.on("connection", (socket) => {
     const code = sanitizeRoomCode(roomCode);
     if (!code) return;
 
-    // Garante que a sala exista em memória
-    // ⚠️ fallback do join-room cria sala PRIVADA por padrão (não polui lobby)
+    // Garante que a sala exista em memÃ³ria
+    // âš ï¸ fallback do join-room cria sala PRIVADA por padrÃ£o (nÃ£o polui lobby)
     if (!rooms[code]) {
       const now = Date.now();
       rooms[code] = {
         code,
         name: `Sala ${code}`,
-        isPublic: false, // ✅ importante
+        isPublic: false, // âœ… importante
         players: {},
         messages: [],
         owner: null,
@@ -319,7 +319,7 @@ io.on("connection", (socket) => {
       room.startTime = new Date();
     }
 
-    // Verifica se já existe um jogador com esse nome na sala
+    // Verifica se jÃ¡ existe um jogador com esse nome na sala
     let existingEntry = Object.entries(room.players).find(
       ([, p]) => p.name === playerName
     );
@@ -360,7 +360,7 @@ io.on("connection", (socket) => {
     room.updatedAt = Date.now();
     broadcastRooms();
 
-    console.log(`🎮 Jogador ${playerName} entrou na sala ${code}`);
+    console.log(`ðŸŽ® Jogador ${playerName} entrou na sala ${code}`);
     console.log("Estado da sala agora:", getRoomState(code));
 
     io.to(code).emit("room-state", getRoomState(code));
@@ -393,7 +393,7 @@ io.on("connection", (socket) => {
     room.updatedAt = Date.now();
 
     console.log(
-      `✅ Vida de ${playerName} na sala ${code}: ${currentLife} -> ${newLife}`
+      `âœ… Vida de ${playerName} na sala ${code}: ${currentLife} -> ${newLife}`
     );
 
     io.to(code).emit("room-state", getRoomState(code));
@@ -401,7 +401,7 @@ io.on("connection", (socket) => {
   });
 
   // ======================
-  // Adicionar carta na mão
+  // Adicionar carta na mÃ£o
   // ======================
   socket.on("add-card-to-hand", async ({ roomCode, playerName, card }) => {
     console.log("BACKEND RECEBEU add-card-to-hand:", roomCode, playerName, !!card);
@@ -429,7 +429,7 @@ io.on("connection", (socket) => {
     );
     if (alreadyInHand) {
       console.log(
-        "⚠️ Ignorando carta duplicada na mão (mesmo instanceId):",
+        "âš ï¸ Ignorando carta duplicada na mÃ£o (mesmo instanceId):",
         newCard.name,
         newCard.instanceId
       );
@@ -461,7 +461,7 @@ io.on("connection", (socket) => {
 
     const validZones = ["hand", "battlefield", "lands", "graveyard", "exile"];
     if (!validZones.includes(zone)) {
-      console.log("⚠️ Zona inválida para toggle-tap:", zone);
+      console.log("âš ï¸ Zona invÃ¡lida para toggle-tap:", zone);
       return;
     }
 
@@ -477,7 +477,7 @@ io.on("connection", (socket) => {
       (c) => c.instanceId && c.instanceId === cardInstanceId
     );
     if (idx === -1) {
-      console.log("⚠️ Carta para tap/untap não encontrada:", cardInstanceId);
+      console.log("âš ï¸ Carta para tap/untap nÃ£o encontrada:", cardInstanceId);
       return;
     }
 
@@ -556,7 +556,7 @@ io.on("connection", (socket) => {
 
     const validZones = ["hand", "battlefield", "lands", "graveyard", "exile", "stack"];
     if (!validZones.includes(fromZone) || !validZones.includes(toZone)) {
-      console.log("⚠️ Zona inválida:", fromZone, toZone);
+      console.log("âš ï¸ Zona invÃ¡lida:", fromZone, toZone);
       return;
     }
 
@@ -574,7 +574,7 @@ io.on("connection", (socket) => {
         (c) => c.instanceId && c.instanceId === cardInstanceId
       );
       if (cardIndex === -1) {
-        console.log("⚠️ Carta não encontrada na zona de origem:", fromZone, cardInstanceId);
+        console.log("âš ï¸ Carta nÃ£o encontrada na zona de origem:", fromZone, cardInstanceId);
         return;
       }
 
@@ -606,7 +606,7 @@ io.on("connection", (socket) => {
         (c) => c.instanceId && c.instanceId === cardInstanceId
       );
       if (cardIndex === -1) {
-        console.log("⚠️ Carta não encontrada na STACK:", cardInstanceId);
+        console.log("âš ï¸ Carta nÃ£o encontrada na STACK:", cardInstanceId);
         return;
       }
 
@@ -651,7 +651,7 @@ io.on("connection", (socket) => {
     );
 
     if (cardIndex === -1) {
-      console.log("⚠️ Carta não encontrada na zona de origem:", fromZone, cardInstanceId);
+      console.log("âš ï¸ Carta nÃ£o encontrada na zona de origem:", fromZone, cardInstanceId);
       return;
     }
 
@@ -782,7 +782,7 @@ io.on("connection", (socket) => {
   // Disconnect
   // ======================
   socket.on("disconnect", async () => {
-    console.log("🔌 Cliente desconectado:", socket.id);
+    console.log("ðŸ”Œ Cliente desconectado:", socket.id);
 
     for (const code of Object.keys(rooms)) {
       const room = rooms[code];
@@ -797,7 +797,7 @@ io.on("connection", (socket) => {
         } else if (hasMongoConnection()) {
           await RoomModel.deleteOne({ code });
         }
-        console.log(`🗑️ Sala ${code} removida (sem jogadores)`);
+        console.log(`ðŸ—‘ï¸ Sala ${code} removida (sem jogadores)`);
       } else {
         room.updatedAt = Date.now();
         io.to(code).emit("room-state", getRoomState(code));
@@ -813,7 +813,7 @@ io.on("connection", (socket) => {
 // Rotas HTTP extras
 // ======================
 
-// rota de saúde
+// rota de saÃºde
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
@@ -822,7 +822,7 @@ app.get("/health", (req, res) => {
 app.get("/api/cards/named", async (req, res) => {
   const { fuzzy } = req.query;
   if (!fuzzy) {
-    return res.status(400).json({ error: 'Parâmetro "fuzzy" é obrigatório' });
+    return res.status(400).json({ error: 'ParÃ¢metro "fuzzy" Ã© obrigatÃ³rio' });
   }
 
   try {
@@ -836,6 +836,30 @@ app.get("/api/cards/named", async (req, res) => {
   }
 });
 
+app.get("/api/cards/search", async (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: 'Parametro "q" e obrigatorio' });
+  }
+
+  try {
+    const response = await axios.get("https://api.scryfall.com/cards/search", {
+      params: {
+        q,
+        order: req.query.order || "name",
+        unique: req.query.unique || "cards",
+      },
+    });
+    res.json(response.data);
+  } catch (err) {
+    const status = err.response?.status || 500;
+    const details =
+      err.response?.data?.details || err.message || "Erro ao consultar Scryfall";
+    console.error("Erro ao pesquisar cartas no Scryfall:", details);
+    res.status(status).json({ error: details });
+  }
+});
+
 // handler global
 app.use((err, req, res, next) => {
   console.error("Erro interno:", err);
@@ -843,6 +867,7 @@ app.use((err, req, res, next) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`ðŸš€ Servidor rodando na porta ${PORT}`);
 });
+
 
